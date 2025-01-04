@@ -104,7 +104,7 @@ void PluginStartAutoScrambleSystem() {
 	s_RoundWinStreak = s_ConVar_RoundWinStreak.IntValue;
 
 	s_ConVar_DominationLead = CreateConVar(
-		"ss_autoscramble_domination_lead", "10",
+		"ss_autoscramble_domination_lead", "8",
 		"Auto-scramble if the winning team has this many more dominations than the average dominations of all other teams. A value of 0 will disable this check.",
 		_,
 		true, 0.0
@@ -113,7 +113,7 @@ void PluginStartAutoScrambleSystem() {
 	s_DominationLead = s_ConVar_DominationLead.IntValue;
 
 	s_ConVar_FragRatio = CreateConVar(
-		"ss_autoscramble_frag_ratio", "2.0",
+		"ss_autoscramble_frag_ratio", "1.75",
 		"Auto-scramble if the winning team's frag ratio to the average of all other team frags is greater than or equal to this. A value of 0 will disable this check.",
 		_,
 		true, 0.0
