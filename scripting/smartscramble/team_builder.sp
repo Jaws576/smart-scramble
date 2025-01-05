@@ -313,7 +313,7 @@ void BuildScrambleTeams(ScrambleMethod scrambleMethod, int clients[MAXPLAYERS], 
 	}
 
 	// Build array of unassgined clients.
-	ArrayList unassignedClients = unassignedClients = createIndicesArray(clientCount);
+	ArrayList unassignedClients = createIndicesArray(clientCount);
 	
 	int teamSizes[TEAM_MAX_PLAY] = {0, ...};
 	int teamScores[TEAM_MAX_PLAY] = {0, ...};
