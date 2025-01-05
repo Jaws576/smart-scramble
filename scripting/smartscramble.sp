@@ -138,6 +138,7 @@ public void OnPluginStart() {
 
 	PluginStartDebugSystem();
 	PluginStartScoringSystem();
+	PluginStartTeamBuilderSystem();
 	PluginStartBuddySystem();
 	PluginStartAutoScrambleSystem();
 
