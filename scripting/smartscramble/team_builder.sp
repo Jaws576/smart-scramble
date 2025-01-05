@@ -305,7 +305,7 @@ void BuildScrambleTeams(ScrambleMethod scrambleMethod, int clients[MAXPLAYERS], 
 				}
 			}
 			for (int i = 0; i < clientCount; ++i) {
-				if (GetClientCurrentPlayTime(clients[i]) < g_ConVar_NewPlayerThreshold) {
+				if (GetClientCurrentPlayTime(clients[i]) < g_NewPlayerThreshold) {
 				clientScores[i] = scoreAvg;
 				}
 			}
