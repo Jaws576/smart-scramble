@@ -25,6 +25,28 @@
  * @param clientCount     Number of clients in the clients array.
  * @return                Number of unassigned buddies members of this team have.
  */
+ 
+ 
+ConVar g_ConVar_NewPlayerThreshold;
+float g_NewPlayerThreshold;
+ 
+void PluginStartTeamBuilderSystem() {
+	g_ConVar_NewPlayerThreshold = CreateConVar(
+		"ss_new_threshold", "300",
+		"The amount of time after joining where a player's effective score for scrambles incorporates the server's average score.",
+		_,
+		true, 0.0,
+		false, 2.0
+	);
+	
+	g_ConVar_NewPlayerThreshold.AddChangeHook(conVarChanged_NewPlayerThreshold);
+	
+}
+	
+static void conVarChanged_NewPlayerThreshold(ConVar convar, const char[] oldValue, const char[] newValue) {
+	g_NewPlayerThreshold = StringToFloat(newValue);
+}
+ 
 static int countTeamUnassignedBuddies(int team, int clients[MAXPLAYERS], int clientTeams[MAXPLAYERS], int clientCount) {
 	int count = 0;
 	for (int i = 0; i < clientCount; ++i) {
@@ -270,6 +292,23 @@ void BuildScrambleTeams(ScrambleMethod scrambleMethod, int clients[MAXPLAYERS], 
 	if (scrambleMethod != ScrambleMethod_Shuffle) {
 		for (int i = 0; i < clientCount; ++i) {
 			clientScores[i] = ScoreClient(clients[i]);
+		}
+		//only run the following for gamescore_time scoring
+		//doing so is a bandaid but it only needs to work with this scoring method for now
+		if (g_ScoreMethod == ScoreMethod_GameScore_Time) {
+			//get the average score of all clients
+			int scoreAvg = 0;
+			for (int i = 0; i < clientCount; ++i) {
+				scoreAvg += ScoreClient(clients[i]);
+				if (clientCount > 0) { //dunno if this check is actually needed but i'd rather not find out
+					scoreAvg /= clientCount;
+				}
+			}
+			for (int i = 0; i < clientCount; ++i) {
+				if (GetClientCurrentPlayTime(clients[i]) < g_NewPlayerThreshold) {
+				clientScores[i] = scoreAvg;
+				}
+			}
 		}
 	}
 
