@@ -276,6 +276,7 @@ public void OnPluginStart() {
 	HookEvent("player_death", event_PlayerDeath_Post, EventHookMode_Post);
 	HookEvent("teamplay_round_start", event_RoundStart_Post, EventHookMode_Post);
 	HookEvent("teamplay_round_win", event_RoundWin_Post, EventHookMode_Post);
+	HookEvent("player_spawn", event_PlayerSpawn, EventHookMode_Post);
 
 	for (int i = 1; i <= MaxClients; ++i) {
 		if (IsClientConnected(i)) {
@@ -535,6 +536,19 @@ static Action event_RoundWin_Post(Event event, const char[] name, bool dontBroad
 	}
 
 	return Plugin_Continue;
+}
+
+static void event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast) {
+	// if scoring mode score per minute
+	if (g_ScoreMethod == ScoreMethod_GameScore_Time){		
+		int spawnID = event.GetInt("userid");
+		int class = event.GetInt("class");
+		
+		PrintToConsole(GetClientOfUserId(spawnID));
+		
+		
+	}
+
 }
 
 void InitConnectedClient(int client) {
