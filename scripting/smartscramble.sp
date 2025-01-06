@@ -72,6 +72,7 @@ static ConVar s_ConVar_ScrambleVoteRatio;
 static ConVar s_ConVar_ScrambleVoteRestartSetup;
 static ConVar s_ConVar_ScrambleVoteCooldown;
 static ConVar s_ConVar_TeamStatsAdminFlags;
+static ConVar s_ConVar_RestartRound;
 
 static ConVar s_ConVar_MessageNotificationColorCode;
 static ConVar s_ConVar_MessageInformationColorCode;
@@ -92,7 +93,7 @@ int g_MessageInformationColorCode;
 int g_MessageSuccessColorCode;
 int g_MessageFailureColorCode;
 
-float g_ClientTeamTime[MAXPLAYERS] = {0.0, ...}; //the GAME TIME (based on server tick) at which the client last joined a team
+float g_ClientTeamTime[MAXPLAYERS] = {0.0, ...}; //the GAME TIME (seconds since map start) at which the client last joined a team
 float g_ClientPlayTime[MAXPLAYERS] = {0.0, ...}; //the time (in seconds) for which a player has been on a (non spectator) team
 bool g_ClientScrambleVote[MAXPLAYERS] = {false, ...};
 
@@ -121,13 +122,13 @@ public void OnPluginStart() {
 		SetFailState("GameData \"smartscramble.txt\" does not exist.");
 	}
 
-	StartPrepSDKCall(SDKCall_Player);
+	/*StartPrepSDKCall(SDKCall_Player);
 	PrepSDKCall_SetFromConf(gameconf, SDKConf_Signature, "CTFPlayer::RemoveAllOwnedEntitiesFromWorld");
 	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain);
 	g_SDKCall_RemoveAllOwnedEntitiesFromWorld = EndPrepSDKCall();
 	if (g_SDKCall_RemoveAllOwnedEntitiesFromWorld == null) {
 		SetFailState("Failed to create SDKCall for \"CTeamplayRoundBasedRules::g_SDKCall_RemoveAllOwnedEntitiesFromWorld\".");
-	}
+	}*/
 
 	g_Hook_GameRules_ShouldScramble = DynamicHook.FromConf(gameconf, "CTeamplayRules::ShouldScrambleTeams");
 	if (g_Hook_GameRules_ShouldScramble == null) {
@@ -150,6 +151,8 @@ public void OnPluginStart() {
 	s_ConVar_TeamsUnbalanceLimit = FindConVar("mp_teams_unbalance_limit");
 	s_ConVar_TeamsUnbalanceLimit.AddChangeHook(conVarChanged_TeamsUnbalanceLimit);
 	g_TeamsUnbalanceLimit = s_ConVar_TeamsUnbalanceLimit.IntValue;
+
+	s_ConVar_RestartRound = FindConVar("mp_restartround");
 
 	s_ConVar_ScrambleMethod = CreateConVar(
 		"ss_scramble_method", "1",
@@ -882,9 +885,8 @@ bool QueueRoundScramble() {
 }
 
 void RestartSetupScramble() {
-	ResetSetupTimer();
-	PerformScramble(RespawnMode_Reset);
-	RespawnPickups();
+	PerformScramble(RespawnMode_Dont);
+	s_ConVar_RestartRound.IntValue = 3;
 }
 
 void RoundScramble() {

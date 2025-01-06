@@ -87,7 +87,7 @@ void ResetSetupTimer() {
  * @noreturn
  */
 void RemoveClientOwnedEntities(int client, bool explodeBuildings = false) {
-	SDKCall(g_SDKCall_RemoveAllOwnedEntitiesFromWorld, client, !explodeBuildings);
+	//SDKCall(g_SDKCall_RemoveAllOwnedEntitiesFromWorld, client, !explodeBuildings);
 }
 
 static char s_PickupClassnames[][] = {
