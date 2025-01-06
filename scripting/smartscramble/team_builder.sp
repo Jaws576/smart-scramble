@@ -290,23 +290,28 @@ void BuildScrambleTeams(ScrambleMethod scrambleMethod, int clients[MAXPLAYERS], 
 	// Score the clients
 	int clientScores[MAXPLAYERS] = {0, ...};
 	if (scrambleMethod != ScrambleMethod_Shuffle) {
-		for (int i = 0; i < clientCount; ++i) {
-			clientScores[i] = ScoreClient(clients[i]);
+		int scoreAvg = 0;
+		int scoringClients = 0;
+		for (int i = 0; i < clientCount; ++i) { //calculate the average while we iterate to set the scores
+			clientScore = ScoreClient(clients[i]);
+			clientScores[i] = clientScore;
+			if (GetClientCurrentPlayTime(clients[i]) >= g_NewPlayerThreshold) { //don't count these players in the average
+				scoreAvg += clientScore;
+				scoringClients++;
+			}
 		}
+
+		if(scoringClients > 0){ //get average score for players connected longer than the threshold
+			scoreAvg /= scoringClients;
+		}
+
 		//only run the following for gamescore_time scoring
 		//doing so is a bandaid but it only needs to work with this scoring method for now
+		//note: this only makes sense to do for time based scoring anyway
 		if (g_ScoreMethod == ScoreMethod_GameScore_Time) {
-			//get the average score of all clients
-			int scoreAvg = 0;
-			for (int i = 0; i < clientCount; ++i) {
-				scoreAvg += ScoreClient(clients[i]);
-				if (clientCount > 0) { //dunno if this check is actually needed but i'd rather not find out
-					scoreAvg /= clientCount;
-				}
-			}
 			for (int i = 0; i < clientCount; ++i) {
 				if (GetClientCurrentPlayTime(clients[i]) < g_NewPlayerThreshold) {
-				clientScores[i] = scoreAvg;
+					clientScores[i] = scoreAvg;
 				}
 			}
 		}
