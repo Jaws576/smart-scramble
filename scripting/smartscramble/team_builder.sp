@@ -32,7 +32,7 @@ float g_NewPlayerThreshold;
  
 void PluginStartTeamBuilderSystem() {
 	g_ConVar_NewPlayerThreshold = CreateConVar(
-		"ss_new_threshold", "300",
+		"ss_new_threshold", "300.0",
 		"The amount of time after joining where a player's effective score for scrambles incorporates the server's average score.",
 		_,
 		true, 0.0,
@@ -40,7 +40,7 @@ void PluginStartTeamBuilderSystem() {
 	);
 	
 	g_ConVar_NewPlayerThreshold.AddChangeHook(conVarChanged_NewPlayerThreshold);
-	
+	g_NewPlayerThreshold = g_ConVar_NewPlayerThreshold.FloatValue;
 }
 	
 static void conVarChanged_NewPlayerThreshold(ConVar convar, const char[] oldValue, const char[] newValue) {
@@ -293,9 +293,9 @@ void BuildScrambleTeams(ScrambleMethod scrambleMethod, int clients[MAXPLAYERS], 
 		int scoreAvg = 0;
 		int scoringClients = 0;
 		for (int i = 0; i < clientCount; ++i) { //calculate the average while we iterate to set the scores
-			clientScore = ScoreClient(clients[i]);
+			int clientScore = ScoreClient(clients[i]);
 			clientScores[i] = clientScore;
-			if (GetClientCurrentPlayTime(clients[i]) >= g_NewPlayerThreshold) { //don't count these players in the average
+			if (GetClientCurrentPlayTime(clients[i]) >= g_NewPlayerThreshold) { //don't count new players in the average
 				scoreAvg += clientScore;
 				scoringClients++;
 			}
@@ -312,6 +312,9 @@ void BuildScrambleTeams(ScrambleMethod scrambleMethod, int clients[MAXPLAYERS], 
 		//doing so is a bandaid but it only needs to work with this scoring method for now
 		//note: this only makes sense to do for time based scoring anyway
 		if (g_ScoreMethod == ScoreMethod_GameScore_Time) {
+			if(g_DebugLog){
+				DebugLog("Threshold: %f", g_NewPlayerThreshold);
+			}
 			for (int i = 0; i < clientCount; ++i) {
 				if (GetClientCurrentPlayTime(clients[i]) < g_NewPlayerThreshold) {
 					clientScores[i] = scoreAvg;

@@ -95,9 +95,9 @@ int g_MessageFailureColorCode;
 
 float g_ClientLastTime[MAXPLAYERS] = {0.0, ...}; //the GAME TIME (seconds since map start) at which the client last had their time updated
 float g_ClientPlayTime[MAXPLAYERS] = {0.0, ...}; //the time (in seconds) for which a player has been playing and their score updated
-int g_ClientLastScore[MAXPLAYERS] = {0.0, ...}; //the client's score the last time it was updated
-int g_ClientPlayScore[MAXPLAYERS] = {0.0, ...}; //the total score for a players while they have been tracked
-bool g_ClientIsTracking[MAXPLAYERS] = {false, ...}
+int g_ClientLastScore[MAXPLAYERS] = {0, ...}; //the client's score the last time it was updated
+int g_ClientPlayScore[MAXPLAYERS] = {0, ...}; //the total score for a players while they have been tracked
+bool g_ClientIsTracking[MAXPLAYERS] = {false, ...};
 bool g_ClientScrambleVote[MAXPLAYERS] = {false, ...};
 
 int g_HumanClients = 0;
@@ -467,12 +467,11 @@ static Action event_PlayerTeam_Pre(Event event, const char[] name, bool dontBroa
 	int team = event.GetInt("team");
 	int oldTeam = event.GetInt("oldteam");
 	if (team != oldTeam) {
-		float gameTime = GetGameTime();
 		if (oldTeam == TEAM_UNASSIGNED)
 		{
-            SetClientScoring(client, 0, 0); //if a player has just joined and set their team from unassigned, reset this client slot's time and score
+            SetClientScoring(client, 0, 0.0); //if a player has just joined and set their team from unassigned, reset this client slot's time and score
 		}
-		if (team == TEAM_SPECTATOR)
+		if (team == TEAM_SPECTATOR || team == TEAM_UNASSIGNED)
 		{
 			PauseClientScoring(client);
 		}
@@ -544,8 +543,7 @@ void InitConnectedClient(int client) {
 }
 
 void InitInGameClient(int client) {
-	g_ClientTeamTime[client] = GetGameTime();
-	g_ClientPlayTime[client] = 0.0;
+	g_ClientLastTime[client] = GetGameTime();
 	InitClientBuddies(client);
 }
 
@@ -613,7 +611,7 @@ static MRESReturn hook_GameRules_ShouldScramble(DHookReturn hReturn) {
  * Retrieves the number of seconds that a given client has been on their current team.
  */
 float GetClientTimeOnTeam(int client) {
-	return GetGameTime() - g_ClientTeamTime[client];
+	return GetGameTime() - g_ClientLastTime[client];
 }
 
 static void notifyScramble() {
@@ -787,7 +785,7 @@ void SetClientScoring(int client, int score, float time){
 void UpdateClientScoreTime(int client){
 	int gameScore = GetEntProp(GetPlayerResourceEntity(), Prop_Send, "m_iTotalScore", _, client);
 	float gameTime = GetGameTime(); 
-	if(g_ClientIsTracking(client)){
+	if(g_ClientIsTracking[client]){
 		g_ClientPlayTime[client] += (gameTime - g_ClientLastTime[client]);
 		g_ClientPlayScore[client] += (gameScore - g_ClientLastScore[client]);
 	}
