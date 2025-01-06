@@ -93,8 +93,11 @@ int g_MessageInformationColorCode;
 int g_MessageSuccessColorCode;
 int g_MessageFailureColorCode;
 
-float g_ClientTeamTime[MAXPLAYERS] = {0.0, ...}; //the GAME TIME (seconds since map start) at which the client last joined a team
-float g_ClientPlayTime[MAXPLAYERS] = {0.0, ...}; //the time (in seconds) for which a player has been on a (non spectator) team
+float g_ClientLastTime[MAXPLAYERS] = {0.0, ...}; //the GAME TIME (seconds since map start) at which the client last had their time updated
+float g_ClientPlayTime[MAXPLAYERS] = {0.0, ...}; //the time (in seconds) for which a player has been playing and their score updated
+int g_ClientLastScore[MAXPLAYERS] = {0.0, ...}; //the client's score the last time it was updated
+int g_ClientPlayScore[MAXPLAYERS] = {0.0, ...}; //the total score for a players while they have been tracked
+bool g_ClientIsTracking[MAXPLAYERS] = {false, ...}
 bool g_ClientScrambleVote[MAXPLAYERS] = {false, ...};
 
 int g_HumanClients = 0;
@@ -467,13 +470,16 @@ static Action event_PlayerTeam_Pre(Event event, const char[] name, bool dontBroa
 		float gameTime = GetGameTime();
 		if (oldTeam == TEAM_UNASSIGNED)
 		{
-            g_ClientPlayTime[client] = 0.0; //if a player has just joined and set their team from unassigned, reset this client slot's playtime
+            SetClientScoring(client, 0, 0); //if a player has just joined and set their team from unassigned, reset this client slot's time and score
 		}
-		else if (!(oldTeam == TEAM_SPECTATOR))
+		if (team == TEAM_SPECTATOR)
 		{
-			g_ClientPlayTime[client] += (gameTime - g_ClientTeamTime[client]);
+			PauseClientScoring(client);
 		}
-		g_ClientTeamTime[client] = gameTime;
+		else
+		{
+			ResumeClientScoring(client);
+		}
 	}
 
 	if (g_SuppressTeamSwitchMessage) {
@@ -751,6 +757,42 @@ enum struct ClientRetainInfo {
 			}
 		}
 	}
+}
+
+void PauseClientScoring(int client){
+	UpdateClientScoreTime(client);
+	g_ClientIsTracking[client] = false;
+	if (g_DebugLog) {
+		DebugLog("Paused time tracking for %N", client);
+	}
+}
+
+void ResumeClientScoring(int client){
+	UpdateClientScoreTime(client);
+	g_ClientIsTracking[client] = true;
+	if (g_DebugLog) {
+		DebugLog("Resumed time tracking for %N", client);
+	}
+}
+
+void SetClientScoring(int client, int score, float time){
+	UpdateClientScoreTime(client);
+	g_ClientPlayTime[client] = time;
+	g_ClientPlayScore[client] = score;
+	if (g_DebugLog) {
+		DebugLog("Set score/time of %N to %d/%f", client, score, time);
+	}
+}
+
+void UpdateClientScoreTime(int client){
+	int gameScore = GetEntProp(GetPlayerResourceEntity(), Prop_Send, "m_iTotalScore", _, client);
+	float gameTime = GetGameTime(); 
+	if(g_ClientIsTracking(client)){
+		g_ClientPlayTime[client] += (gameTime - g_ClientLastTime[client]);
+		g_ClientPlayScore[client] += (gameScore - g_ClientLastScore[client]);
+	}
+	g_ClientLastTime[client] = gameTime;
+	g_ClientLastScore[client] = gameScore;
 }
 
 bool MoveClientTeam(int client, int team, RespawnMode respawnMode) {

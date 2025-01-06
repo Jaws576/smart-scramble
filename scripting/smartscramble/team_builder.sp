@@ -303,6 +303,9 @@ void BuildScrambleTeams(ScrambleMethod scrambleMethod, int clients[MAXPLAYERS], 
 
 		if(scoringClients > 0){ //get average score for players connected longer than the threshold
 			scoreAvg /= scoringClients;
+			if(g_DebugLog){
+				DebugLog("Average score: %d", scoreAvg);
+			}
 		}
 
 		//only run the following for gamescore_time scoring
@@ -312,6 +315,9 @@ void BuildScrambleTeams(ScrambleMethod scrambleMethod, int clients[MAXPLAYERS], 
 			for (int i = 0; i < clientCount; ++i) {
 				if (GetClientCurrentPlayTime(clients[i]) < g_NewPlayerThreshold) {
 					clientScores[i] = scoreAvg;
+				}
+				if(g_DebugLog){
+					DebugLog("Player %N of playing time %f assigned score of %d", clients[i], GetClientCurrentPlayTime(clients[i]), clientScores[i]);
 				}
 			}
 		}
