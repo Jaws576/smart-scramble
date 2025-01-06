@@ -2,3 +2,11 @@ scripting/include/
 scripting/hlxce-sm-api.sp
 scripting/spcomp
 scripting/smartscramble.smx
+scripting/compile.sh
+scripting/spcomp64
+scripting/compile.dat
+scripting/compile.exe
+scripting/compiled/smartscramble.smx
+scripting/spcomp.exe
+scripting/spcomp64.exe
+scripting/compiled/hlxce-sm-api.smx

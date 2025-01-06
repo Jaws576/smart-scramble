@@ -84,8 +84,7 @@ int ScoreClient(int client) {
 
 float GetClientCurrentPlayTime(int client)
 {
-	int team = GetClientTeam(client)
-	if(!(team==TEAM_SPECTATOR || team==TEAM_UNASSIGNED))
+	if(g_ClientIsTracking[client])
 	{
 		return (g_ClientPlayTime[client] + GetClientTimeOnTeam(client));
 	}
