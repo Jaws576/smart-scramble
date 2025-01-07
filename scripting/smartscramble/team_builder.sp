@@ -274,9 +274,11 @@ static ArrayList createIndicesArray(int maxIndex, int extraBlocks = 0) {
  * @param scoreB	Another score value
  * @param weightA	How much do we favour scoreA? 0.5 is exactly between A and B
  */
-void InterpolateScoreLinear(int scoreA, int scoreB, float weightA){
-	return scoreA * weightA + scoreB * (1-weightA); //use a linear interpolation
+int InterpolateScoreLinear(int scoreA, int scoreB, float weightA){
+	return RoundToNearest(scoreA * weightA + scoreB * (1-weightA)); //use a linear interpolation
 }
+
+const float PI = 3.14159265359;
 
 /**
  * Interpolates two score values smoothly using trig
@@ -285,9 +287,9 @@ void InterpolateScoreLinear(int scoreA, int scoreB, float weightA){
  * @param scoreB	Another score value
  * @param weightA	How much do we favour scoreA? 0.5 is exactly between A and B
  */
-void InterpolateScoreSine(int scoreA, int scoreB, float weightA){
+int InterpolateScoreSine(int scoreA, int scoreB, float weightA){
 	float newWeightA = 0.5*(1+Sine((weightA * PI)-(PI/2))); //use a segment of sine to smoothly blend the two values
-	return InterpolateScore(scoreA, scoreB, w);
+	return InterpolateScoreLinear(scoreA, scoreB, newWeightA);
 }
 
 /**
@@ -347,7 +349,7 @@ void BuildScrambleTeams(ScrambleMethod scrambleMethod, int clients[MAXPLAYERS], 
 					clientScores[i] = InterpolateScoreLinear(clientScores[i], scoreAvg, playTime/g_NewPlayerThreshold);
 				}
 				if(g_DebugLog){
-					DebugLog("Player %N of playing time %f assigned score of %d", clients[i], GetClientCurrentPlayTime(clients[i]), clientScores[i]);
+					DebugLog("Player %N (%d/%f) assigned score of %d", clients[i], g_ClientPlayScore[client], playTime);
 				}
 			}
 		}

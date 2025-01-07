@@ -98,7 +98,8 @@ int ScoreClientUnmodified(int client) {
 		case ScoreMethod_GameScore:
 			score = GetEntProp(GetPlayerResourceEntity(), Prop_Send, "m_iTotalScore", _, client);
 		case ScoreMethod_GameScore_Time:
-			score = RoundToNearest((GetEntProp(GetPlayerResourceEntity(), Prop_Send, "m_iTotalScore", _, client) * 600) / GetClientCurrentPlayTime(client));
+			UpdateClientScoreTime(client);
+			score = RoundToNearest(g_ClientPlayScore[client] * 600) / g_ClientPlayTime[client]);
 		default:
 			score = g_ClientCachedScore[client];
 	}
