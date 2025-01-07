@@ -344,12 +344,12 @@ void BuildScrambleTeams(ScrambleMethod scrambleMethod, int clients[MAXPLAYERS], 
 				float playTime = GetClientCurrentPlayTime(clients[i]);
 				if (playTime < g_NewPlayerThreshold) {
 					if(g_DebugLog){
-						DebugLog("Interpolated between %d and %d to get %d", clientScores[i], scoreAvg, InterpolateScoreSine(clientScores[i], scoreAvg, playTime/g_NewPlayerThreshold));
+						DebugLog("Interpolated between %d and %d", clientScores[i], scoreAvg);
 					}
-					clientScores[i] = InterpolateScoreLinear(clientScores[i], scoreAvg, playTime/g_NewPlayerThreshold);
+					clientScores[i] = InterpolateScoreSine(clientScores[i], scoreAvg, playTime/g_NewPlayerThreshold);
 				}
 				if(g_DebugLog){
-					DebugLog("Player %N (%d/%f) assigned score of %d", clients[i], g_ClientPlayScore[client], playTime);
+					DebugLog("Player %N (%d/%f) assigned score of %d", clients[i], g_ClientPlayScore[clients[i]], playTime, clientScores[i]);
 				}
 			}
 		}
