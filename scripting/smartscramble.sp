@@ -100,6 +100,8 @@ int g_ClientPlayScore[MAXPLAYERS] = {0, ...}; //the total score for a players wh
 bool g_ClientIsTracking[MAXPLAYERS] = {false, ...};
 bool g_ClientScrambleVote[MAXPLAYERS] = {false, ...};
 
+int g_TeamVips[4] = {0, ...};
+
 int g_HumanClients = 0;
 int g_ScrambleVotes = 0;
 float g_ScrambleVoteScrambleTime = 0.0;
@@ -276,6 +278,7 @@ public void OnPluginStart() {
 	HookEvent("player_death", event_PlayerDeath_Post, EventHookMode_Post);
 	HookEvent("teamplay_round_start", event_RoundStart_Post, EventHookMode_Post);
 	HookEvent("teamplay_round_win", event_RoundWin_Post, EventHookMode_Post);
+	HookEvent("vip_assigned", event_Vip_Assigned_Post, EventHookMode_Post);
 
 	for (int i = 1; i <= MaxClients; ++i) {
 		if (IsClientConnected(i)) {
@@ -303,6 +306,7 @@ public void OnMapStart() {
 	g_RoundScrambleQueued = false;
 	g_ScrambleVoteScrambleTime = 0.0;
 	g_ScrambleVotePassed = false;
+	g_TeamVips = {0, 0, 0, 0};
 }
 
 static void conVarChanged_ScrambleVoteEnabled(ConVar convar, const char[] oldValue, const char[] newValue) {
@@ -537,6 +541,21 @@ static Action event_RoundWin_Post(Event event, const char[] name, bool dontBroad
 	return Plugin_Continue;
 }
 
+static Action event_Vip_Assigned_Post(Event event, const char[] name, bool dontBroadcast){
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	int team = event.GetInt("team");
+	int oldVip = GetTeamVIP(team);
+	SetTeamVIP(team, client);
+	if(g_DebugLog){
+		DebugLog("VIP for team %d changed from %N to %N", team, oldVip, client);
+	}
+	if(oldVip != 0){
+		ResumeClientScoring(oldVip);
+	}
+	PauseClientScoring(client);
+	return Plugin_Continue;
+}
+
 void InitConnectedClient(int client) {
 	g_ClientScrambleVote[client] = false;
 	InitClientScore(client);
@@ -758,18 +777,23 @@ enum struct ClientRetainInfo {
 }
 
 void PauseClientScoring(int client){
-	UpdateClientScoreTime(client);
-	g_ClientIsTracking[client] = false;
-	if (g_DebugLog) {
-		DebugLog("Paused time tracking for %N", client);
+	if(g_ClientIsTracking[client])
+	{
+		UpdateClientScoreTime(client);
+		g_ClientIsTracking[client] = false;
+		if (g_DebugLog) {
+			DebugLog("Paused time tracking for %N (%d/%f)", client, g_ClientPlayScore[client], g_ClientPlayTime[client]);
+		}
 	}
 }
 
 void ResumeClientScoring(int client){
-	UpdateClientScoreTime(client);
-	g_ClientIsTracking[client] = true;
-	if (g_DebugLog) {
-		DebugLog("Resumed time tracking for %N", client);
+	if(!g_ClientIsTracking[client]){
+		UpdateClientScoreTime(client);
+		g_ClientIsTracking[client] = true;
+		if (g_DebugLog) {
+			DebugLog("Resumed time tracking for %N (%d/%f)", client, g_ClientPlayScore[client], g_ClientPlayTime[client]);
+		}
 	}
 }
 
