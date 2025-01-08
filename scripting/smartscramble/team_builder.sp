@@ -268,6 +268,31 @@ static ArrayList createIndicesArray(int maxIndex, int extraBlocks = 0) {
 }*/
 
 /**
+ * Interpolates two score values linearly
+ * 
+ * @param scoreA	A score value
+ * @param scoreB	Another score value
+ * @param weightA	How much do we favour scoreA? 0.5 is exactly between A and B
+ */
+int InterpolateScoreLinear(int scoreA, int scoreB, float weightA){
+	return RoundToNearest(scoreA * weightA + scoreB * (1-weightA)); //use a linear interpolation
+}
+
+const float PI = 3.14159265359;
+
+/**
+ * Interpolates two score values smoothly using trig
+ * 
+ * @param scoreA	A score value
+ * @param scoreB	Another score value
+ * @param weightA	How much do we favour scoreA? 0.5 is exactly between A and B
+ */
+int InterpolateScoreSine(int scoreA, int scoreB, float weightA){
+	float newWeightA = 0.5*(1+Sine((weightA * PI)-(PI/2))); //use a segment of sine to smoothly blend the two values
+	return InterpolateScoreLinear(scoreA, scoreB, newWeightA);
+}
+
+/**
  * Builds teams by shuffling.
  *
  * @param scrambleMethod    Scramble method to use to build teams.
@@ -316,11 +341,15 @@ void BuildScrambleTeams(ScrambleMethod scrambleMethod, int clients[MAXPLAYERS], 
 				DebugLog("Threshold: %f", g_NewPlayerThreshold);
 			}
 			for (int i = 0; i < clientCount; ++i) {
-				if (GetClientCurrentPlayTime(clients[i]) < g_NewPlayerThreshold) {
-					clientScores[i] = scoreAvg;
+				float playTime = GetClientCurrentPlayTime(clients[i]);
+				if (playTime < g_NewPlayerThreshold) {
+					if(g_DebugLog){
+						DebugLog("Interpolated between %d and %d", clientScores[i], scoreAvg);
+					}
+					clientScores[i] = InterpolateScoreSine(clientScores[i], scoreAvg, playTime/g_NewPlayerThreshold);
 				}
 				if(g_DebugLog){
-					DebugLog("Player %N of playing time %f assigned score of %d", clients[i], GetClientCurrentPlayTime(clients[i]), clientScores[i]);
+					DebugLog("Player %N (%d/%f) assigned score of %d", clients[i], g_ClientPlayScore[clients[i]], playTime, clientScores[i]);
 				}
 			}
 		}
