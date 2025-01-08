@@ -21,7 +21,7 @@
 #include <profiler>
 
 #include <tf2c>
-//#include <hlxce-sm-api>
+#include <hlxce-sm-api>
 #include <dhooks>
 
 #pragma semicolon 1
@@ -540,7 +540,7 @@ static Action event_RoundWin_Post(Event event, const char[] name, bool dontBroad
 	return Plugin_Continue;
 }
 
-static void event_VipAssigned(Event event, const char[] name, bool dontBroadcast) {
+static void event_VipAssigned_Post(Event event, const char[] name, bool dontBroadcast) {
 	// if scoring mode score per minute
 	if (g_ScoreMethod == ScoreMethod_GameScore_Time){
 		int clients[MAXPLAYERS];
@@ -557,10 +557,14 @@ static void event_VipAssigned(Event event, const char[] name, bool dontBroadcast
 		}
 		
 		PauseClientScoring(GetClientOfUserId(event.GetInt("userid"))); //set vip scoring to pause
-		PrintToServer("vip set to \"%s\"", GetClientOfUserId(event.GetInt("userid")));
+		if(g_DebugLog){
+			DebugLog("vip set to \"%s\"", GetClientOfUserId(event.GetInt("userid")));
+		}
 	}
 	else {
-		PrintToServer("function ran but score method \"%i\"", g_ScoreMethod);
+		if(g_DebugLog){
+			DebugLog("function ran but score method \"%i\"", g_ScoreMethod);
+		}
 	}
 }
 
@@ -575,15 +579,17 @@ void InitInGameClient(int client) {
 }
 
 public void OnAllPluginsLoaded() {
-	//g_HLCEApiAvailable = LibraryExists("hlxce-sm-api");
-	PrintToServer("OnAllPluginsLoaded \"%i\"", g_ConVar_ScoreMethod.IntValue);
+	g_HLCEApiAvailable = LibraryExists("hlxce-sm-api");
+	if(g_DebugLog){
+		DebugLog("OnAllPluginsLoaded \"%i\"", g_ConVar_ScoreMethod.IntValue);
+	}
 	InitScoreMethod(view_as<ScoreMethod>(g_ConVar_ScoreMethod.IntValue));
 	
 }
 
 public void OnLibraryAdded(const char[] name) {
 	if (StrEqual(name, "hlxce-sm-api")) {
-		//g_HLCEApiAvailable = true;
+		g_HLCEApiAvailable = true;
 	}
 }
 
