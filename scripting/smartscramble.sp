@@ -545,20 +545,21 @@ static void event_Vip_Assigned_Post(Event event, const char[] name, bool dontBro
 	if (g_ScoreMethod == ScoreMethod_GameScore_Time){
 		int clients[MAXPLAYERS];
 		int clientCount = 0;
-		
+		/*
+		int vipId = event.GetInt("userid");
 		int vipTeam = event.GetInt("team");
-		
+		*/
 		
 		
 		for (int i = 1; i <= MaxClients; ++i) {
-			if (IsClientInGame(i) && GetClientTeam(i) == vipTeam) {
+			// if player is not their team's vip, resume
+			if (IsClientInGame(i) && (GetTeamVIP(GetClientTeam(i)) == i)) {
 				ResumeClientScoring(GetClientOfUserId(i));
 			}
-		}
-		
-		PauseClientScoring(GetClientOfUserId(event.GetInt("userid"))); //set vip scoring to pause
-		if(g_DebugLog){
-			DebugLog("vip set to \"%N\"", GetClientOfUserId(event.GetInt("userid")));
+			// else, pause
+			else {
+				PauseClientScoring(GetClientOfUserId(i));
+			}
 		}
 	}
 	else {
