@@ -278,7 +278,7 @@ public void OnPluginStart() {
 	HookEvent("player_death", event_PlayerDeath_Post, EventHookMode_Post);
 	HookEvent("teamplay_round_start", event_RoundStart_Post, EventHookMode_Post);
 	HookEvent("teamplay_round_win", event_RoundWin_Post, EventHookMode_Post);
-	HookEvent("vip_assigned", event_VipAssigned, EventHookMode_Post);
+	HookEvent("vip_assigned", event_Vip_Assigned_Post, EventHookMode_Post);
 
 	for (int i = 1; i <= MaxClients; ++i) {
 		if (IsClientConnected(i)) {
@@ -306,6 +306,7 @@ public void OnMapStart() {
 	g_RoundScrambleQueued = false;
 	g_ScrambleVoteScrambleTime = 0.0;
 	g_ScrambleVotePassed = false;
+	g_TeamVips = {0, 0, 0, 0};
 }
 
 static void conVarChanged_ScrambleVoteEnabled(ConVar convar, const char[] oldValue, const char[] newValue) {
@@ -540,7 +541,7 @@ static Action event_RoundWin_Post(Event event, const char[] name, bool dontBroad
 	return Plugin_Continue;
 }
 
-static void event_VipAssigned_Post(Event event, const char[] name, bool dontBroadcast) {
+static void event_Vip_Assigned_Post(Event event, const char[] name, bool dontBroadcast) {
 	// if scoring mode score per minute
 	if (g_ScoreMethod == ScoreMethod_GameScore_Time){
 		int clients[MAXPLAYERS];
@@ -793,18 +794,23 @@ enum struct ClientRetainInfo {
 }
 
 void PauseClientScoring(int client){
-	UpdateClientScoreTime(client);
-	g_ClientIsTracking[client] = false;
-	if (g_DebugLog) {
-		DebugLog("Paused time tracking for %N", client);
+	if(g_ClientIsTracking[client])
+	{
+		UpdateClientScoreTime(client);
+		g_ClientIsTracking[client] = false;
+		if (g_DebugLog) {
+			DebugLog("Paused time tracking for %N (%d/%f)", client, g_ClientPlayScore[client], g_ClientPlayTime[client]);
+		}
 	}
 }
 
 void ResumeClientScoring(int client){
-	UpdateClientScoreTime(client);
-	g_ClientIsTracking[client] = true;
-	if (g_DebugLog) {
-		DebugLog("Resumed time tracking for %N", client);
+	if(!g_ClientIsTracking[client]){
+		UpdateClientScoreTime(client);
+		g_ClientIsTracking[client] = true;
+		if (g_DebugLog) {
+			DebugLog("Resumed time tracking for %N (%d/%f)", client, g_ClientPlayScore[client], g_ClientPlayTime[client]);
+		}
 	}
 }
 
