@@ -21,7 +21,7 @@
 #include <profiler>
 
 #include <tf2c>
-//#include <hlxce-sm-api>
+#include <hlxce-sm-api>
 #include <dhooks>
 
 #pragma semicolon 1
@@ -278,7 +278,7 @@ public void OnPluginStart() {
 	HookEvent("player_death", event_PlayerDeath_Post, EventHookMode_Post);
 	HookEvent("teamplay_round_start", event_RoundStart_Post, EventHookMode_Post);
 	HookEvent("teamplay_round_win", event_RoundWin_Post, EventHookMode_Post);
-	HookEvent("vip_assigned", event_VipAssigned, EventHookMode_Post);
+	HookEvent("vip_assigned", event_VipAssigned_Post, EventHookMode_Post);
 
 	for (int i = 1; i <= MaxClients; ++i) {
 		if (IsClientConnected(i)) {
@@ -540,7 +540,7 @@ static Action event_RoundWin_Post(Event event, const char[] name, bool dontBroad
 	return Plugin_Continue;
 }
 
-static void event_VipAssigned(Event event, const char[] name, bool dontBroadcast) {
+static void event_VipAssigned_Post(Event event, const char[] name, bool dontBroadcast) {
 	// if scoring mode score per minute
 	if (g_ScoreMethod == ScoreMethod_GameScore_Time){
 		int clients[MAXPLAYERS];
@@ -561,11 +561,11 @@ static void event_VipAssigned(Event event, const char[] name, bool dontBroadcast
 				PauseClientScoring(GetClientOfUserId(i));
 			}
 		}
-		
-		PrintToServer("vip set to \"%s\"", GetClientOfUserId(event.GetInt("userid")));
 	}
 	else {
-		PrintToServer("function ran but score method \"%i\"", g_ScoreMethod);
+		if(g_DebugLog){
+			DebugLog("function ran but score method \"%i\"", g_ScoreMethod);
+		}
 	}
 }
 
@@ -580,15 +580,17 @@ void InitInGameClient(int client) {
 }
 
 public void OnAllPluginsLoaded() {
-	//g_HLCEApiAvailable = LibraryExists("hlxce-sm-api");
-	PrintToServer("OnAllPluginsLoaded \"%i\"", g_ConVar_ScoreMethod.IntValue);
+	g_HLCEApiAvailable = LibraryExists("hlxce-sm-api");
+	if(g_DebugLog){
+		DebugLog("OnAllPluginsLoaded \"%i\"", g_ConVar_ScoreMethod.IntValue);
+	}
 	InitScoreMethod(view_as<ScoreMethod>(g_ConVar_ScoreMethod.IntValue));
 	
 }
 
 public void OnLibraryAdded(const char[] name) {
 	if (StrEqual(name, "hlxce-sm-api")) {
-		//g_HLCEApiAvailable = true;
+		g_HLCEApiAvailable = true;
 	}
 }
 
@@ -792,18 +794,23 @@ enum struct ClientRetainInfo {
 }
 
 void PauseClientScoring(int client){
-	UpdateClientScoreTime(client);
-	g_ClientIsTracking[client] = false;
-	if (g_DebugLog) {
-		DebugLog("Paused time tracking for %N", client);
+	if(g_ClientIsTracking[client])
+	{
+		UpdateClientScoreTime(client);
+		g_ClientIsTracking[client] = false;
+		if (g_DebugLog) {
+			DebugLog("Paused time tracking for %N (%d/%f)", client, g_ClientPlayScore[client], g_ClientPlayTime[client]);
+		}
 	}
 }
 
 void ResumeClientScoring(int client){
-	UpdateClientScoreTime(client);
-	g_ClientIsTracking[client] = true;
-	if (g_DebugLog) {
-		DebugLog("Resumed time tracking for %N", client);
+	if(!g_ClientIsTracking[client]){
+		UpdateClientScoreTime(client);
+		g_ClientIsTracking[client] = true;
+		if (g_DebugLog) {
+			DebugLog("Resumed time tracking for %N (%d/%f)", client, g_ClientPlayScore[client], g_ClientPlayTime[client]);
+		}
 	}
 }
 
