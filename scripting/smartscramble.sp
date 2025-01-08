@@ -21,7 +21,7 @@
 #include <profiler>
 
 #include <tf2c>
-#include <hlxce-sm-api>
+//#include <hlxce-sm-api>
 #include <dhooks>
 
 #pragma semicolon 1
@@ -117,6 +117,8 @@ bool g_HLCEApiAvailable = false;
 #include "smartscramble/team_builder.sp"
 
 public void OnPluginStart() {
+
+	PrintToServer("pootis");
 	LoadTranslations("common.phrases");
 	LoadTranslations("smartscramble.phrases");
 
@@ -276,7 +278,7 @@ public void OnPluginStart() {
 	HookEvent("player_death", event_PlayerDeath_Post, EventHookMode_Post);
 	HookEvent("teamplay_round_start", event_RoundStart_Post, EventHookMode_Post);
 	HookEvent("teamplay_round_win", event_RoundWin_Post, EventHookMode_Post);
-	HookEvent("player_spawn", event_PlayerSpawn, EventHookMode_Post);
+	HookEvent("vip_assigned", event_VipAssigned, EventHookMode_Post);
 
 	for (int i = 1; i <= MaxClients; ++i) {
 		if (IsClientConnected(i)) {
@@ -538,17 +540,28 @@ static Action event_RoundWin_Post(Event event, const char[] name, bool dontBroad
 	return Plugin_Continue;
 }
 
-static void event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast) {
+static void event_VipAssigned(Event event, const char[] name, bool dontBroadcast) {
 	// if scoring mode score per minute
-	if (g_ScoreMethod == ScoreMethod_GameScore_Time){		
-		int spawnID = event.GetInt("userid");
-		int class = event.GetInt("class");
+	if (g_ScoreMethod == ScoreMethod_GameScore_Time){
+		int clients[MAXPLAYERS];
+		int clientCount = 0;
 		
-		PrintToConsole(GetClientOfUserId(spawnID));
+		int vipTeam = event.GetInt("team");
 		
 		
+		
+		for (int i = 1; i <= MaxClients; ++i) {
+			if (IsClientInGame(i) && GetClientTeam(i) == vipTeam) {
+				ResumeClientScoring(GetClientOfUserId(i));
+			}
+		}
+		
+		PauseClientScoring(GetClientOfUserId(event.GetInt("userid"))); //set vip scoring to pause
+		PrintToServer("vip set to \"%s\"", GetClientOfUserId(event.GetInt("userid")));
 	}
-
+	else {
+		PrintToServer("function ran but score method \"%i\"", g_ScoreMethod);
+	}
 }
 
 void InitConnectedClient(int client) {
@@ -562,13 +575,15 @@ void InitInGameClient(int client) {
 }
 
 public void OnAllPluginsLoaded() {
-	g_HLCEApiAvailable = LibraryExists("hlxce-sm-api");
+	//g_HLCEApiAvailable = LibraryExists("hlxce-sm-api");
+	PrintToServer("OnAllPluginsLoaded \"%i\"", g_ConVar_ScoreMethod.IntValue);
 	InitScoreMethod(view_as<ScoreMethod>(g_ConVar_ScoreMethod.IntValue));
+	
 }
 
 public void OnLibraryAdded(const char[] name) {
 	if (StrEqual(name, "hlxce-sm-api")) {
-		g_HLCEApiAvailable = true;
+		//g_HLCEApiAvailable = true;
 	}
 }
 

@@ -34,13 +34,14 @@ int g_ClientCachedScore[MAXPLAYERS];
 
 void PluginStartScoringSystem() {
 	g_ConVar_ScoreMethod = CreateConVar(
-		"ss_score_method", "0",
+		"ss_score_method", "2",
 		"The method used to score players during a scramble.\n\t0 - Use Game Score\n\t1 - Use HLX:CE Skill\n\t2 - Use Game Score per 10 minutes",
 		_,
 		true, 0.0,
 		true, 2.0
 	);
 	g_ConVar_ScoreMethod.AddChangeHook(conVarChanged_ScoreMethod);
+	PrintToServer("PluginStartScoringSystem \"%i\"", g_ConVar_ScoreMethod.IntValue);
 
 	s_ConVar_ScorePrecisionFactor = CreateConVar(
 		"ss_score_precision_factor", "1",
@@ -60,6 +61,7 @@ void PluginStartScoringSystem() {
 }
 
 static void conVarChanged_ScoreMethod(ConVar convar, const char[] oldValue, const char[] newValue) {
+	PrintToServer("conVarChanged_ScoreMethod \"%s\"", newValue);
 	InitScoreMethod(view_as<ScoreMethod>(StringToInt(newValue)));
 }
 
@@ -107,13 +109,13 @@ int ScoreClientUnmodified(int client) {
 
 void InitClientScore(int client) {
 	g_ClientCachedScore[client] = g_FallbackScore;
-	switch (g_ScoreMethod) {
+	/*switch (g_ScoreMethod) {
 		case ScoreMethod_HLXCE_Skill: {
 			if (HLXCE_IsClientReady(client)) {
 				HLXCE_GetPlayerData(client);
 			}
 		}
-	}
+	}*/
 }
 
 void UpdateScoreCache() {
@@ -126,6 +128,7 @@ void UpdateScoreCache() {
 void InitScoreMethod(ScoreMethod scoreMethod) {
 	if (g_ScoreMethod != scoreMethod) {
 		g_ScoreMethod = scoreMethod;
+		PrintToServer("set score method \"%i\"", g_ScoreMethod);
 		switch (g_ScoreMethod) {
 			case ScoreMethod_HLXCE_Skill:
 				initScoreMethod_HLXCE();
@@ -135,9 +138,9 @@ void InitScoreMethod(ScoreMethod scoreMethod) {
 
 static void updateScoreCache_HLXCE() {
 	for (int i = 1; i <= MaxClients; ++i) {
-		if (HLXCE_IsClientReady(i)) {
+		/*if (HLXCE_IsClientReady(i)) {
 			HLXCE_GetPlayerData(i);
-		}
+		}*/
 	}
 }
 
@@ -146,19 +149,20 @@ static void initScoreMethod_HLXCE() {
 		updateScoreCache_HLXCE();
 	} else {
 		LogMessage("hlxce-sm-api is missing - falling back to game score method");
+		PrintToServer("initScoreMethod_HLXCE \"%i\"", ScoreMethod_GameScore);
 		InitScoreMethod(ScoreMethod_GameScore);
 	}
 }
 
 public int HLXCE_OnClientReady(int client) {
-	HLXCE_GetPlayerData(client);
+	//HLXCE_GetPlayerData(client);
 }
 
-public int HLXCE_OnGotPlayerData(int client, const PData[HLXCE_PlayerData]) {
+/*public int HLXCE_OnGotPlayerData(int client, const PData[HLXCE_PlayerData]) {
 	if (g_ScoreMethod == ScoreMethod_HLXCE_Skill) {
 		g_ClientCachedScore[client] = PData[PData_Skill];
 		if (g_DebugLog) {
 			LogMessage("%N fetched skill score %d from HLX:CE", client, g_ClientCachedScore[client]);
 		}
 	}
-}
+}*/
