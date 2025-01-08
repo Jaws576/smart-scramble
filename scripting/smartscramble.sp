@@ -278,7 +278,8 @@ public void OnPluginStart() {
 	HookEvent("player_death", event_PlayerDeath_Post, EventHookMode_Post);
 	HookEvent("teamplay_round_start", event_RoundStart_Post, EventHookMode_Post);
 	HookEvent("teamplay_round_win", event_RoundWin_Post, EventHookMode_Post);
-	HookEvent("vip_assigned", event_Vip_Assigned_Post, EventHookMode_Post);
+	HookEvent("vip_assigned", event_VipAssigned_Post, EventHookMode_Post);
+
 
 	for (int i = 1; i <= MaxClients; ++i) {
 		if (IsClientConnected(i)) {
@@ -540,7 +541,9 @@ static Action event_RoundWin_Post(Event event, const char[] name, bool dontBroad
 	return Plugin_Continue;
 }
 
-static void event_Vip_Assigned_Post(Event event, const char[] name, bool dontBroadcast) {
+
+static void event_VipAssigned_Post(Event event, const char[] name, bool dontBroadcast) {
+
 	// if scoring mode score per minute
 	if (g_ScoreMethod == ScoreMethod_GameScore_Time){
 		int clients[MAXPLAYERS];
