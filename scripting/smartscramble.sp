@@ -306,7 +306,6 @@ public void OnMapStart() {
 	g_RoundScrambleQueued = false;
 	g_ScrambleVoteScrambleTime = 0.0;
 	g_ScrambleVotePassed = false;
-	g_TeamVips = {0, 0, 0, 0};
 }
 
 static void conVarChanged_ScrambleVoteEnabled(ConVar convar, const char[] oldValue, const char[] newValue) {
@@ -559,7 +558,7 @@ static void event_Vip_Assigned_Post(Event event, const char[] name, bool dontBro
 		
 		PauseClientScoring(GetClientOfUserId(event.GetInt("userid"))); //set vip scoring to pause
 		if(g_DebugLog){
-			DebugLog("vip set to \"%s\"", GetClientOfUserId(event.GetInt("userid")));
+			DebugLog("vip set to \"%N\"", GetClientOfUserId(event.GetInt("userid")));
 		}
 	}
 	else {
