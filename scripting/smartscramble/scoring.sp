@@ -34,7 +34,7 @@ int g_ClientCachedScore[MAXPLAYERS];
 
 void PluginStartScoringSystem() {
 	g_ConVar_ScoreMethod = CreateConVar(
-		"ss_score_method", "2",
+		"ss_score_method", "0",
 		"The method used to score players during a scramble.\n\t0 - Use Game Score\n\t1 - Use HLX:CE Skill\n\t2 - Use Game Score per 10 minutes",
 		_,
 		true, 0.0,
