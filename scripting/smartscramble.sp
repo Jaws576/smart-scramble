@@ -100,6 +100,8 @@ int g_ClientPlayScore[MAXPLAYERS] = {0, ...}; //the total score for a players wh
 bool g_ClientIsTracking[MAXPLAYERS] = {false, ...};
 bool g_ClientScrambleVote[MAXPLAYERS] = {false, ...};
 
+int g_TeamVips[4] = {0, ...};
+
 int g_HumanClients = 0;
 int g_ScrambleVotes = 0;
 float g_ScrambleVoteScrambleTime = 0.0;
@@ -541,7 +543,6 @@ static Action event_RoundWin_Post(Event event, const char[] name, bool dontBroad
 	return Plugin_Continue;
 }
 
-
 static void event_VipAssigned_Post(Event event, const char[] name, bool dontBroadcast) {
 
 	// if scoring mode score per minute
@@ -565,11 +566,11 @@ static void event_VipAssigned_Post(Event event, const char[] name, bool dontBroa
 			}
 		}
 	}
-	else {
-		if(g_DebugLog){
-			DebugLog("function ran but score method \"%i\"", g_ScoreMethod);
-		}
+	if(oldVip != 0){
+		ResumeClientScoring(oldVip);
 	}
+	PauseClientScoring(client);
+	return Plugin_Continue;
 }
 
 void InitConnectedClient(int client) {
