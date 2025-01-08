@@ -280,7 +280,8 @@ public void OnPluginStart() {
 	HookEvent("player_death", event_PlayerDeath_Post, EventHookMode_Post);
 	HookEvent("teamplay_round_start", event_RoundStart_Post, EventHookMode_Post);
 	HookEvent("teamplay_round_win", event_RoundWin_Post, EventHookMode_Post);
-	HookEvent("vip_assigned", event_Vip_Assigned_Post, EventHookMode_Post);
+	HookEvent("vip_assigned", event_VipAssigned_Post, EventHookMode_Post);
+
 
 	for (int i = 1; i <= MaxClients; ++i) {
 		if (IsClientConnected(i)) {
@@ -308,7 +309,6 @@ public void OnMapStart() {
 	g_RoundScrambleQueued = false;
 	g_ScrambleVoteScrambleTime = 0.0;
 	g_ScrambleVotePassed = false;
-	g_TeamVips = {0, 0, 0, 0};
 }
 
 static void conVarChanged_ScrambleVoteEnabled(ConVar convar, const char[] oldValue, const char[] newValue) {
@@ -543,13 +543,28 @@ static Action event_RoundWin_Post(Event event, const char[] name, bool dontBroad
 	return Plugin_Continue;
 }
 
-static Action event_Vip_Assigned_Post(Event event, const char[] name, bool dontBroadcast){
-	int client = GetClientOfUserId(event.GetInt("userid"));
-	int team = event.GetInt("team");
-	int oldVip = GetTeamVIP(team);
-	SetTeamVIP(team, client);
-	if(g_DebugLog){
-		DebugLog("VIP for team %d changed from %N to %N", team, oldVip, client);
+static void event_VipAssigned_Post(Event event, const char[] name, bool dontBroadcast) {
+
+	// if scoring mode score per minute
+	if (g_ScoreMethod == ScoreMethod_GameScore_Time){
+		int clients[MAXPLAYERS];
+		int clientCount = 0;
+		/*
+		int vipId = event.GetInt("userid");
+		int vipTeam = event.GetInt("team");
+		*/
+		
+		
+		for (int i = 1; i <= MaxClients; ++i) {
+			// if player is not their team's vip, resume
+			if (IsClientInGame(i) && (GetTeamVIP(GetClientTeam(i)) == i)) {
+				ResumeClientScoring(GetClientOfUserId(i));
+			}
+			// else, pause
+			else {
+				PauseClientScoring(GetClientOfUserId(i));
+			}
+		}
 	}
 	if(oldVip != 0){
 		ResumeClientScoring(oldVip);
