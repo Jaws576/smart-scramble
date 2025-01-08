@@ -41,6 +41,9 @@ void PluginStartScoringSystem() {
 		true, 2.0
 	);
 	g_ConVar_ScoreMethod.AddChangeHook(conVarChanged_ScoreMethod);
+	if (g_DebugLog){
+		DebugLog("PluginStartScoringSystem \"%i\"", g_ConVar_ScoreMethod.IntValue);
+	}
 
 	s_ConVar_ScorePrecisionFactor = CreateConVar(
 		"ss_score_precision_factor", "1",
@@ -60,6 +63,9 @@ void PluginStartScoringSystem() {
 }
 
 static void conVarChanged_ScoreMethod(ConVar convar, const char[] oldValue, const char[] newValue) {
+	if(g_DebugLog){
+		DebugLog("conVarChanged_ScoreMethod \"%s\"", newValue);
+	}
 	InitScoreMethod(view_as<ScoreMethod>(StringToInt(newValue)));
 }
 
@@ -126,6 +132,9 @@ void UpdateScoreCache() {
 void InitScoreMethod(ScoreMethod scoreMethod) {
 	if (g_ScoreMethod != scoreMethod) {
 		g_ScoreMethod = scoreMethod;
+		if(g_DebugLog){
+			DebugLog("set score method \"%i\"", g_ScoreMethod);
+		}
 		switch (g_ScoreMethod) {
 			case ScoreMethod_HLXCE_Skill:
 				initScoreMethod_HLXCE();
@@ -146,6 +155,9 @@ static void initScoreMethod_HLXCE() {
 		updateScoreCache_HLXCE();
 	} else {
 		LogMessage("hlxce-sm-api is missing - falling back to game score method");
+		if(g_DebugLog){
+			DebugLog("initScoreMethod_HLXCE \"%i\"", ScoreMethod_GameScore);
+		}
 		InitScoreMethod(ScoreMethod_GameScore);
 	}
 }
