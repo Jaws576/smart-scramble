@@ -278,7 +278,8 @@ public void OnPluginStart() {
 	HookEvent("player_death", event_PlayerDeath_Post, EventHookMode_Post);
 	HookEvent("teamplay_round_start", event_RoundStart_Post, EventHookMode_Post);
 	HookEvent("teamplay_round_win", event_RoundWin_Post, EventHookMode_Post);
-	HookEvent("vip_assigned", event_Vip_Assigned_Post, EventHookMode_Post);
+	HookEvent("vip_assigned", event_VipAssigned_Post, EventHookMode_Post);
+
 
 	for (int i = 1; i <= MaxClients; ++i) {
 		if (IsClientConnected(i)) {
@@ -540,32 +541,28 @@ static Action event_RoundWin_Post(Event event, const char[] name, bool dontBroad
 	return Plugin_Continue;
 }
 
-static void event_Vip_Assigned_Post(Event event, const char[] name, bool dontBroadcast) {
+static void event_VipAssigned_Post(Event event, const char[] name, bool dontBroadcast) {
+
 	// if scoring mode score per minute
 	if (g_ScoreMethod == ScoreMethod_GameScore_Time){
-		int clients[MAXPLAYERS];
-		int clientCount = 0;
-		
+		/*
+		int vipId = event.GetInt("userid");
 		int vipTeam = event.GetInt("team");
-		
+		*/
 		
 		
 		for (int i = 1; i <= MaxClients; ++i) {
-			if (IsClientInGame(i) && GetClientTeam(i) == vipTeam) {
+			// if player is not their team's vip, resume
+			if (IsClientInGame(i) && (GetTeamVIP(GetClientTeam(i)) == i)) {
 				ResumeClientScoring(GetClientOfUserId(i));
 			}
-		}
-		
-		PauseClientScoring(GetClientOfUserId(event.GetInt("userid"))); //set vip scoring to pause
-		if(g_DebugLog){
-			DebugLog("vip set to \"%N\"", GetClientOfUserId(event.GetInt("userid")));
-		}
-	}
-	else {
-		if(g_DebugLog){
-			DebugLog("function ran but score method \"%i\"", g_ScoreMethod);
+			// else, pause
+			else {
+				PauseClientScoring(GetClientOfUserId(i));
+			}
 		}
 	}
+	return Plugin_Continue;
 }
 
 void InitConnectedClient(int client) {
