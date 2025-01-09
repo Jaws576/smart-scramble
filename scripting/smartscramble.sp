@@ -541,24 +541,26 @@ static Action event_RoundWin_Post(Event event, const char[] name, bool dontBroad
 	return Plugin_Continue;
 }
 
-static void event_VipAssigned_Post(Event event, const char[] name, bool dontBroadcast) {
+static Action event_VipAssigned_Post(Event event, const char[] name, bool dontBroadcast) {
 
 	// if scoring mode score per minute
 	if (g_ScoreMethod == ScoreMethod_GameScore_Time){
-		/*
-		int vipId = event.GetInt("userid");
-		int vipTeam = event.GetInt("team");
-		*/
-		
+
+		int vipId = GetClientOfUserId(event.GetInt("userid"));
+		//int vipTeam = event.GetInt("team");
+
+		if(g_DebugLog){
+			DebugLog("VIP changed to %N", vipId, vipId);
+		}
 		
 		for (int i = 1; i <= MaxClients; ++i) {
 			// if player is not their team's vip, resume
-			if (IsClientInGame(i) && (GetTeamVIP(GetClientTeam(i)) == i)) {
-				ResumeClientScoring(GetClientOfUserId(i));
+			if (IsClientInGame(i) && !(GetTeamVIP(GetClientTeam(i)) == i)) {
+				ResumeClientScoring(i);
 			}
 			// else, pause
 			else {
-				PauseClientScoring(GetClientOfUserId(i));
+				PauseClientScoring(i);
 			}
 		}
 	}
