@@ -100,6 +100,8 @@ int g_ClientPlayScore[MAXPLAYERS] = {0, ...}; //the total score for a players wh
 bool g_ClientIsTracking[MAXPLAYERS] = {false, ...};
 bool g_ClientScrambleVote[MAXPLAYERS] = {false, ...};
 
+static StringMap g_LastMapUserIdScores;
+
 int g_HumanClients = 0;
 int g_ScrambleVotes = 0;
 float g_ScrambleVoteScrambleTime = 0.0;
@@ -117,7 +119,7 @@ bool g_HLCEApiAvailable = false;
 #include "smartscramble/team_builder.sp"
 
 public void OnPluginStart() {
-
+	g_LastMapUserIdScores = new StringMap();
 	PrintToServer("pootis");
 	LoadTranslations("common.phrases");
 	LoadTranslations("smartscramble.phrases");
@@ -144,7 +146,6 @@ public void OnPluginStart() {
 
 	PluginStartDebugSystem();
 	PluginStartScoringSystem();
-	PluginStartTeamBuilderSystem();
 	PluginStartBuddySystem();
 	PluginStartAutoScrambleSystem();
 
@@ -471,11 +472,7 @@ static Action event_PlayerTeam_Pre(Event event, const char[] name, bool dontBroa
 	int team = event.GetInt("team");
 	int oldTeam = event.GetInt("oldteam");
 	if (team != oldTeam) {
-		if (oldTeam == TEAM_UNASSIGNED)
-		{
-            SetClientScoring(client, 0, 0.0); //if a player has just joined and set their team from unassigned, reset this client slot's time and score
-		}
-		if (team == TEAM_SPECTATOR || team == TEAM_UNASSIGNED)
+		if (team == TEAM_SPECTATOR)
 		{
 			PauseClientScoring(client);
 		}
@@ -570,6 +567,23 @@ static Action event_VipAssigned_Post(Event event, const char[] name, bool dontBr
 void InitConnectedClient(int client) {
 	g_ClientScrambleVote[client] = false;
 	InitClientScore(client);
+	int uid = GetClientUserId(client);
+	char key[32];
+	IntToString(uid, key, 32);
+	int playScore = 0;
+	float playTime = 0.0;
+	if(g_LastMapUserIdScores.ContainsKey(key)){
+		DataPack userdata;
+		g_LastMapUserIdScores.GetValue(key, userdata);
+		userdata.Reset();
+		playScore = userdata.ReadCell();
+		playTime = userdata.ReadFloat();
+		if(g_DebugLog){
+			DebugLog("Loaded %N: %d/%f", client, g_ClientPlayScore[client], g_ClientPlayTime[client]);
+		}
+		CloseHandle(userdata);
+	}
+	SetClientScoring(client, playScore, playTime);
 }
 
 void InitInGameClient(int client) {
@@ -617,6 +631,17 @@ public void OnClientConnected(int client) {
 }
 
 public void OnClientDisconnect(int client) {
+	int uid = GetClientUserId(client);
+	UpdateClientScoreTime(client);
+	DataPack userdata = new DataPack();
+	userdata.WriteCell(g_ClientPlayScore[client]);
+	userdata.WriteFloat(g_ClientPlayTime[client]);
+	char key[32];
+	IntToString(uid, key, 32);
+	g_LastMapUserIdScores.SetValue(key, userdata);
+	if(g_DebugLog){
+		DebugLog("Saved %N: %d/%f", client, g_ClientPlayScore[client], g_ClientPlayTime[client]);
+	}
 	if (!IsFakeClient(client)) {
 		--g_HumanClients;
 		if (g_ClientScrambleVote[client]) {
@@ -633,6 +658,14 @@ public void TF2_OnWaitingForPlayersStart() {
 	AutoScrambleReset();
 	g_RoundScrambleQueued = false;
 	g_ScrambleVoteScrambleTime = 0.0;
+}
+
+public void TF2_OnWaitingForPlayersEnd() {
+	g_LastMapUserIdScores.Clear();
+	PerformScramble(RespawnMode_Dont);
+	for (int i = 1; i <= MaxClients; ++i){
+		SetClientScoring(i, 0, 0.0);
+	}
 }
 
 static MRESReturn hook_GameRules_ShouldScramble(DHookReturn hReturn) {
