@@ -30,11 +30,14 @@ ScoreMethod g_ScoreMethod;
 int g_ScorePrecisionFactor;
 int g_FallbackScore;
 
+ConVar g_ConVar_NewPlayerThreshold;
+float g_NewPlayerThreshold;
+
 int g_ClientCachedScore[MAXPLAYERS];
 
 void PluginStartScoringSystem() {
 	g_ConVar_ScoreMethod = CreateConVar(
-		"ss_score_method", "0",
+		"ss_score_method", "2",
 		"The method used to score players during a scramble.\n\t0 - Use Game Score\n\t1 - Use HLX:CE Skill\n\t2 - Use Game Score per 10 minutes",
 		_,
 		true, 0.0,
@@ -60,6 +63,21 @@ void PluginStartScoringSystem() {
 	);
 	s_ConVar_FallbackScore.AddChangeHook(conVarChanged_BotScore);
 	g_FallbackScore = s_ConVar_FallbackScore.IntValue;
+
+	g_ConVar_NewPlayerThreshold = CreateConVar(
+		"ss_new_threshold", "300.0",
+		"The amount of time after joining where a player's effective score for scrambles incorporates the server's average score.",
+		_,
+		true, 0.0,
+		false, 2.0
+	);
+	
+	g_ConVar_NewPlayerThreshold.AddChangeHook(conVarChanged_NewPlayerThreshold);
+	g_NewPlayerThreshold = g_ConVar_NewPlayerThreshold.FloatValue;
+}
+
+static void conVarChanged_NewPlayerThreshold(ConVar convar, const char[] oldValue, const char[] newValue) {
+	g_NewPlayerThreshold = StringToFloat(newValue);
 }
 
 static void conVarChanged_ScoreMethod(ConVar convar, const char[] oldValue, const char[] newValue) {
@@ -122,6 +140,74 @@ void InitClientScore(int client) {
 		case ScoreMethod_HLXCE_Skill: {
 			if (HLXCE_IsClientReady(client)) {
 				HLXCE_GetPlayerData(client);
+			}
+		}
+	}
+}
+
+/**
+ * Interpolates two score values linearly
+ * 
+ * @param scoreA	A score value
+ * @param scoreB	Another score value
+ * @param weightA	How much do we favour scoreA? 0.5 is exactly between A and B
+ */
+int InterpolateScoreLinear(int scoreA, int scoreB, float weightA){
+	return RoundToNearest(scoreA * weightA + scoreB * (1-weightA)); //use a linear interpolation
+}
+
+const float PI = 3.14159265359;
+
+/**
+ * Interpolates two score values smoothly using trig
+ * 
+ * @param scoreA	A score value
+ * @param scoreB	Another score value
+ * @param weightA	How much do we favour scoreA? 0.5 is exactly between A and B
+ */
+int InterpolateScoreSine(int scoreA, int scoreB, float weightA){
+	float newWeightA = 0.5*(1+Sine((weightA * PI)-(PI/2))); //use a segment of sine to smoothly blend the two values
+	return InterpolateScoreLinear(scoreA, scoreB, newWeightA);
+}
+
+void ScoreClients(int clients[MAXPLAYERS], int clientScores[MAXPLAYERS], int clientCount){
+	int scoreAvg = 0;
+	int scoringClients = 0;
+	for (int i = 0; i < clientCount; ++i) { //calculate the average while we iterate to set the scores
+		int client = clients[i];
+		int clientScore = ScoreClient(client);
+		clientScores[client] = clientScore;
+		if (GetClientCurrentPlayTime(client) >= g_NewPlayerThreshold) { //don't count new players in the average
+			scoreAvg += clientScore;
+			scoringClients++;
+		}
+	}
+
+	if(scoringClients > 0){ //get average score for players connected longer than the threshold
+		scoreAvg /= scoringClients;
+		if(g_DebugLog){
+			DebugLog("Average score: %d", scoreAvg);
+		}
+	}
+
+	//only run the following for gamescore_time scoring
+	//doing so is a bandaid but it only needs to work with this scoring method for now
+	//note: this only makes sense to do for time based scoring anyway
+	if (g_ScoreMethod == ScoreMethod_GameScore_Time) {
+		if(g_DebugLog){
+			DebugLog("Threshold: %f", g_NewPlayerThreshold);
+		}
+		for (int i = 0; i < clientCount; ++i) {
+			int client = clients[i];
+			float playTime = GetClientCurrentPlayTime(client);
+			if (playTime < g_NewPlayerThreshold) {
+				if(g_DebugLog){
+					DebugLog("Interpolated between %d and %d", clientScores[client], scoreAvg);
+				}
+				clientScores[client] = InterpolateScoreSine(clientScores[client], scoreAvg, playTime/g_NewPlayerThreshold);
+			}
+			if(g_DebugLog){
+				DebugLog("Player %N (%d/%f) assigned score of %d", client, g_ClientPlayScore[client], playTime, clientScores[client]);
 			}
 		}
 	}
