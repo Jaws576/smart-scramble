@@ -247,31 +247,6 @@ static ArrayList createIndicesArray(int maxIndex, int extraBlocks = 0) {
 }*/
 
 /**
- * Interpolates two score values linearly
- * 
- * @param scoreA	A score value
- * @param scoreB	Another score value
- * @param weightA	How much do we favour scoreA? 0.5 is exactly between A and B
- */
-int InterpolateScoreLinear(int scoreA, int scoreB, float weightA){
-	return RoundToNearest(scoreA * weightA + scoreB * (1-weightA)); //use a linear interpolation
-}
-
-const float PI = 3.14159265359;
-
-/**
- * Interpolates two score values smoothly using trig
- * 
- * @param scoreA	A score value
- * @param scoreB	Another score value
- * @param weightA	How much do we favour scoreA? 0.5 is exactly between A and B
- */
-int InterpolateScoreSine(int scoreA, int scoreB, float weightA){
-	float newWeightA = 0.5*(1+Sine((weightA * PI)-(PI/2))); //use a segment of sine to smoothly blend the two values
-	return InterpolateScoreLinear(scoreA, scoreB, newWeightA);
-}
-
-/**
  * Builds teams by shuffling.
  *
  * @param scrambleMethod    Scramble method to use to build teams.
