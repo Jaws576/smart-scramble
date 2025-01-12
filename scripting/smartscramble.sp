@@ -280,7 +280,7 @@ public void OnPluginStart() {
 	HookEvent("player_death", event_PlayerDeath_Post, EventHookMode_Post);
 	HookEvent("teamplay_round_start", event_RoundStart_Post, EventHookMode_Post);
 	HookEvent("teamplay_round_win", event_RoundWin_Post, EventHookMode_Post);
-	HookEvent("vip_assigned", event_Vip_Assigned_Post, EventHookMode_Post);
+	HookEvent("vip_assigned", event_VipAssigned_Post, EventHookMode_Post);
 
 	for (int i = 1; i <= MaxClients; ++i) {
 		if (IsClientConnected(i)) {
@@ -543,15 +543,15 @@ static Action event_RoundWin_Post(Event event, const char[] name, bool dontBroad
 	return Plugin_Continue;
 }
 
-static Action event_Vip_Assigned_Post(Event event, const char[] name, bool dontBroadcast){
+static Action event_VipAssigned_Post(Event event, const char[] name, bool dontBroadcast){
 	int client = GetClientOfUserId(event.GetInt("userid"));
 	int team = event.GetInt("team");
 	int oldVip = GetTeamVIP(team);
 	SetTeamVIP(team, client);
 	if(g_DebugLog){
-		DebugLog("VIP for team %d changed from %N to %N", team, oldVip, client);
+		DebugLog("VIP for team %d changed from %d to %d", team, oldVip, client);
 	}
-	if(oldVip != 0){
+	if(oldVip != 0 && IsClientConnected(oldVip)){
 		ResumeClientScoring(oldVip);
 	}
 	PauseClientScoring(client);
