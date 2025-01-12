@@ -91,7 +91,16 @@ bool IsTeamEscorting(int team) {
  * @return        Client index of the team's VIP or 0 if none.
  */
 int GetTeamVIP(int team) {
-	return GetEntProp(GetTeamEntity(team), Prop_Send, "m_iVIP");
+	return g_TeamVips[team - 2];
+}
+/**
+ * Sets the VIP of the given team to a client index.
+ * 
+ * @param team    Index of the team to set the VIP of
+ * @param client  Client index to set the VIP to
+ */
+void SetTeamVIP(int team, int client) {
+	g_TeamVips[team - 2] = client;
 }
 
 /**

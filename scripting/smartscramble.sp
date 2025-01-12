@@ -102,6 +102,7 @@ int g_ClientPlayScore[MAXPLAYERS] = {0, ...}; //the total score for a players wh
 bool g_ClientIsTracking[MAXPLAYERS] = {false, ...};
 bool g_ClientScrambleVote[MAXPLAYERS] = {false, ...};
 
+int g_TeamVips[4] = {0, ...};
 static StringMap g_LastMapUserIdScores;
 
 int g_HumanClients = 0;
@@ -558,31 +559,18 @@ static Action event_RoundWin_Post(Event event, const char[] name, bool dontBroad
 	return Plugin_Continue;
 }
 
-static Action event_VipAssigned_Post(Event event, const char[] name, bool dontBroadcast) {
-
-	// if scoring mode score per minute
-	if (g_ScoreMethod == ScoreMethod_GameScore_Time){
-
-		int vipId = GetClientOfUserId(event.GetInt("userid"));
-		//int vipTeam = event.GetInt("team");
-
-		if(g_DebugLog){
-			DebugLog("VIP changed to %d", vipId, vipId);
-		}
-		
-		for (int i = 1; i <= MaxClients; ++i) {
-			if(IsClientInGame(i)){
-				// if player is not their team's vip, resume
-				if (!(GetTeamVIP(GetClientTeam(i)) == i)) {
-					ResumeClientScoring(i);
-				}
-				// else, pause
-				else {
-					PauseClientScoring(i);
-				}
-			}
-		}
+static Action event_VipAssigned_Post(Event event, const char[] name, bool dontBroadcast){
+	int client = GetClientOfUserId(event.GetInt("userid"));
+	int team = event.GetInt("team");
+	int oldVip = GetTeamVIP(team);
+	SetTeamVIP(team, client);
+	if(g_DebugLog){
+		DebugLog("VIP for team %d changed from %d to %d", team, oldVip, client);
 	}
+	if(oldVip != 0 && IsClientConnected(oldVip)){
+		ResumeClientScoring(oldVip);
+	}
+	PauseClientScoring(client);
 	return Plugin_Continue;
 }
 
