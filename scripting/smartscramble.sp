@@ -948,10 +948,9 @@ int ComputeTeamStats(int sums[TEAM_MAX_PLAY], float ratios[TEAM_MAX_PLAY]) {
 	ScoreClients(clients, clientScores, clientCount);
 
 	for (int i = 0; i < clientCount; ++i) {
-		int client = clients[i];
-		int team = GetClientTeam(client);
+		int team = GetClientTeam(clients[i]);
 		if (team >= TEAM_FIRST_PLAY) {
-			int score = clientScores[client];
+			int score = clientScores[i];
 			sumTotal += score;
 			sums[team - TEAM_FIRST_PLAY] += score;
 		}

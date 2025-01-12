@@ -176,7 +176,7 @@ void ScoreClients(int clients[MAXPLAYERS], int clientScores[MAXPLAYERS], int cli
 	for (int i = 0; i < clientCount; ++i) { //calculate the average while we iterate to set the scores
 		int client = clients[i];
 		int clientScore = ScoreClient(client);
-		clientScores[client] = clientScore;
+		clientScores[i] = clientScore;
 		if (GetClientCurrentPlayTime(client) >= g_NewPlayerThreshold) { //don't count new players in the average
 			scoreAvg += clientScore;
 			scoringClients++;
@@ -202,12 +202,12 @@ void ScoreClients(int clients[MAXPLAYERS], int clientScores[MAXPLAYERS], int cli
 			float playTime = GetClientCurrentPlayTime(client);
 			if (playTime < g_NewPlayerThreshold) {
 				if(g_DebugLog){
-					DebugLog("Interpolated between %d and %d", clientScores[client], scoreAvg);
+					DebugLog("Interpolated between %d and %d", clientScores[i], scoreAvg);
 				}
-				clientScores[client] = InterpolateScoreSine(clientScores[client], scoreAvg, playTime/g_NewPlayerThreshold);
+				clientScores[i] = InterpolateScoreSine(clientScores[i], scoreAvg, playTime/g_NewPlayerThreshold);
 			}
 			if(g_DebugLog){
-				DebugLog("Player %N (%d/%f) assigned score of %d", client, g_ClientPlayScore[client], playTime, clientScores[client]);
+				DebugLog("Player %N (%d/%f) assigned score of %d", client, g_ClientPlayScore[client], playTime, clientScores[i]);
 			}
 		}
 	}
