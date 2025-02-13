@@ -16,19 +16,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-enum ScoreMethod {
-	ScoreMethod_GameScore = 0,
-	ScoreMethod_HLXCE_Skill = 1,
-	ScoreMethod_GameScore_Time = 2
-};
 
-ConVar g_ConVar_ScoreMethod;
 static ConVar s_ConVar_ScorePrecisionFactor;
-static ConVar s_ConVar_FallbackScore;
 
-ScoreMethod g_ScoreMethod;
 int g_ScorePrecisionFactor;
-int g_FallbackScore;
 
 ConVar g_ConVar_NewPlayerThreshold;
 float g_NewPlayerThreshold;
@@ -36,16 +27,8 @@ float g_NewPlayerThreshold;
 int g_ClientCachedScore[MAXPLAYERS];
 
 void PluginStartScoringSystem() {
-	g_ConVar_ScoreMethod = CreateConVar(
-		"ss_score_method", "2",
-		"The method used to score players during a scramble.\n\t0 - Use Game Score\n\t1 - Use HLX:CE Skill\n\t2 - Use Game Score per 10 minutes",
-		_,
-		true, 0.0,
-		true, 2.0
-	);
-	g_ConVar_ScoreMethod.AddChangeHook(conVarChanged_ScoreMethod);
 	if (g_DebugLog){
-		DebugLog("PluginStartScoringSystem \"%i\"", g_ConVar_ScoreMethod.IntValue);
+		DebugLog("PluginStartScoringSystem");
 	}
 
 	s_ConVar_ScorePrecisionFactor = CreateConVar(
@@ -56,13 +39,6 @@ void PluginStartScoringSystem() {
 	);
 	s_ConVar_ScorePrecisionFactor.AddChangeHook(conVarChanged_ScorePrecisionFactor);
 	g_ScorePrecisionFactor = s_ConVar_ScorePrecisionFactor.IntValue;
-
-	s_ConVar_FallbackScore = CreateConVar(
-		"ss_fallback_score", "0",
-		"The fallback score value given to players when no score data is available."
-	);
-	s_ConVar_FallbackScore.AddChangeHook(conVarChanged_BotScore);
-	g_FallbackScore = s_ConVar_FallbackScore.IntValue;
 
 	g_ConVar_NewPlayerThreshold = CreateConVar(
 		"ss_new_threshold", "300.0",
@@ -80,19 +56,8 @@ static void conVarChanged_NewPlayerThreshold(ConVar convar, const char[] oldValu
 	g_NewPlayerThreshold = StringToFloat(newValue);
 }
 
-static void conVarChanged_ScoreMethod(ConVar convar, const char[] oldValue, const char[] newValue) {
-	if(g_DebugLog){
-		DebugLog("conVarChanged_ScoreMethod \"%s\"", newValue);
-	}
-	InitScoreMethod(view_as<ScoreMethod>(StringToInt(newValue)));
-}
-
 static void conVarChanged_ScorePrecisionFactor(ConVar convar, const char[] oldValue, const char[] newValue) {
 	g_ScorePrecisionFactor = StringToInt(newValue);
-}
-
-static void conVarChanged_BotScore(ConVar convar, const char[] oldValue, const char[] newValue) {
-	g_FallbackScore = StringToInt(newValue);
 }
 
 int ScoreClient(int client) {
@@ -122,27 +87,11 @@ int GetClientScoreTime(int client){
 
 
 int ScoreClientUnmodified(int client) {
-	int score;
-	switch (g_ScoreMethod) {
-		case ScoreMethod_GameScore:
-			score = GetEntProp(GetPlayerResourceEntity(), Prop_Send, "m_iTotalScore", _, client);
-		case ScoreMethod_GameScore_Time:
-			score = GetClientScoreTime(client);
-		default:
-			score = g_ClientCachedScore[client];
-	}
-	return score;
+	return GetClientScoreTime(client);
 }
 
 void InitClientScore(int client) {
-	g_ClientCachedScore[client] = g_FallbackScore;
-	switch (g_ScoreMethod) {
-		case ScoreMethod_HLXCE_Skill: {
-			if (HLXCE_IsClientReady(client)) {
-				HLXCE_GetPlayerData(client);
-			}
-		}
-	}
+	return; //TODO: when we move all score related stuff to scoring.sp, this will initialise the client from their lastmapscore
 }
 
 /**
@@ -190,78 +139,20 @@ void ScoreClients(int clients[MAXPLAYERS], int clientScores[MAXPLAYERS], int cli
 		}
 	}
 
-	//only run the following for gamescore_time scoring
-	//doing so is a bandaid but it only needs to work with this scoring method for now
-	//note: this only makes sense to do for time based scoring anyway
-	if (g_ScoreMethod == ScoreMethod_GameScore_Time) {
-		if(g_DebugLog){
-			DebugLog("Threshold: %f", g_NewPlayerThreshold);
-		}
-		for (int i = 0; i < clientCount; ++i) {
-			int client = clients[i];
-			float playTime = GetClientCurrentPlayTime(client);
-			if (playTime < g_NewPlayerThreshold) {
-				if(g_DebugLog){
-					DebugLog("Interpolated between %d and %d", clientScores[i], scoreAvg);
-				}
-				clientScores[i] = InterpolateScoreSine(clientScores[i], scoreAvg, playTime/g_NewPlayerThreshold);
-			}
+	if(g_DebugLog){
+		DebugLog("Threshold: %f", g_NewPlayerThreshold);
+	}
+	for (int i = 0; i < clientCount; ++i) {
+		int client = clients[i];
+		float playTime = GetClientCurrentPlayTime(client);
+		if (playTime < g_NewPlayerThreshold) {
 			if(g_DebugLog){
-				DebugLog("Player %N (%d/%f) assigned score of %d", client, g_ClientPlayScore[client], playTime, clientScores[i]);
+				DebugLog("Interpolated between %d and %d", clientScores[i], scoreAvg);
 			}
+			clientScores[i] = InterpolateScoreSine(clientScores[i], scoreAvg, playTime/g_NewPlayerThreshold);
 		}
-	}
-}
-
-void UpdateScoreCache() {
-	switch (g_ScoreMethod) {
-		case ScoreMethod_HLXCE_Skill:
-			updateScoreCache_HLXCE();
-	}
-}
-
-void InitScoreMethod(ScoreMethod scoreMethod) {
-	if (g_ScoreMethod != scoreMethod) {
-		g_ScoreMethod = scoreMethod;
 		if(g_DebugLog){
-			DebugLog("set score method \"%i\"", g_ScoreMethod);
-		}
-		switch (g_ScoreMethod) {
-			case ScoreMethod_HLXCE_Skill:
-				initScoreMethod_HLXCE();
-		}
-	}
-}
-
-static void updateScoreCache_HLXCE() {
-	for (int i = 1; i <= MaxClients; ++i) {
-		if (HLXCE_IsClientReady(i)) {
-			HLXCE_GetPlayerData(i);
-		}
-	}
-}
-
-static void initScoreMethod_HLXCE() {
-	if (g_HLCEApiAvailable) {
-		updateScoreCache_HLXCE();
-	} else {
-		LogMessage("hlxce-sm-api is missing - falling back to game score method");
-		if(g_DebugLog){
-			DebugLog("initScoreMethod_HLXCE \"%i\"", ScoreMethod_GameScore);
-		}
-		InitScoreMethod(ScoreMethod_GameScore);
-	}
-}
-
-public int HLXCE_OnClientReady(int client) {
-	HLXCE_GetPlayerData(client);
-}
-
-public int HLXCE_OnGotPlayerData(int client, const PData[HLXCE_PlayerData]) {
-	if (g_ScoreMethod == ScoreMethod_HLXCE_Skill) {
-		g_ClientCachedScore[client] = PData[PData_Skill];
-		if (g_DebugLog) {
-			LogMessage("%N fetched skill score %d from HLX:CE", client, g_ClientCachedScore[client]);
+			DebugLog("Player %N (%d/%f) assigned score of %d", client, g_ClientPlayScore[client], playTime, clientScores[i]);
 		}
 	}
 }

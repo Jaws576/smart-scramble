@@ -1,6 +1,6 @@
 /*
  * smart-scramble
- * Copyright (C) 2024  Jaws
+ * Copyright (C) 2024  Jaws, sbebular
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,6 @@
 #include <profiler>
 
 #include <tf2c>
-#include <hlxce-sm-api>
 #include <dhooks>
 
 #pragma semicolon 1
@@ -55,12 +54,6 @@ enum RespawnMode {
 	RespawnMode_Retain,
 }
 
-enum DatabaseKind {
-	DatabaseKind_None,
-	DatabaseKind_HLXCE,
-}
-
-Handle g_SDKCall_RemoveAllOwnedEntitiesFromWorld;
 DynamicHook g_Hook_GameRules_ShouldScramble;
 
 static ConVar s_ConVar_ScrambleVoteEnabled;
@@ -85,7 +78,7 @@ int g_TeamsUnbalanceLimit;
 ScrambleMethod g_ScrambleMethod;
 float g_SpecTimeout;
 float g_ScrambleVoteRatio;
-float g_ScrambleOnLoadRatio;
+float g_ScrambleOnLoadRatio; //TODO: Move this to autoscramble.sp
 bool g_ScrambleVoteRestartSetup;
 float g_ScrambleVoteCooldown;
 static int s_TeamStatsAdminFlags;
@@ -95,15 +88,16 @@ int g_MessageInformationColorCode;
 int g_MessageSuccessColorCode;
 int g_MessageFailureColorCode;
 
+
 float g_ClientLastTime[MAXPLAYERS] = {0.0, ...}; //the GAME TIME (seconds since map start) at which the client last had their time updated
 float g_ClientPlayTime[MAXPLAYERS] = {0.0, ...}; //the time (in seconds) for which a player has been playing and their score updated
 int g_ClientLastScore[MAXPLAYERS] = {0, ...}; //the client's score the last time it was updated
 int g_ClientPlayScore[MAXPLAYERS] = {0, ...}; //the total score for a players while they have been tracked
-bool g_ClientIsTracking[MAXPLAYERS] = {false, ...};
+bool g_ClientIsTracking[MAXPLAYERS] = {false, ...}; //TODO: Move these cvars to scoring.sp
 bool g_ClientScrambleVote[MAXPLAYERS] = {false, ...};
 
 int g_TeamVips[4] = {0, ...};
-static StringMap g_LastMapUserIdScores;
+static StringMap g_LastMapUserIdScores; //TODO: Move this to scoring.sp
 
 int g_HumanClients = 0;
 int g_ScrambleVotes = 0;
@@ -111,9 +105,7 @@ float g_ScrambleVoteScrambleTime = 0.0;
 bool g_RoundScrambleQueued = false;
 bool g_ScrambleVotePassed = false;
 bool g_SuppressTeamSwitchMessage = false;
-bool g_MapStartScramble = false;
-
-bool g_HLCEApiAvailable = false;
+bool g_MapStartScramble = false; //TODO: Move this to autoscramble.sp
 
 #include "smartscramble/debug.sp"
 #include "smartscramble/utils.sp"
@@ -123,8 +115,8 @@ bool g_HLCEApiAvailable = false;
 #include "smartscramble/team_builder.sp"
 
 public void OnPluginStart() {
-	g_LastMapUserIdScores = new StringMap();
-	PrintToServer("pootis");
+	g_LastMapUserIdScores = new StringMap(); //TODO: Move this to scoring.sp
+	//PrintToServer("pootis");
 	LoadTranslations("common.phrases");
 	LoadTranslations("smartscramble.phrases");
 
@@ -162,7 +154,7 @@ public void OnPluginStart() {
 	s_ConVar_TeamsUnbalanceLimit.AddChangeHook(conVarChanged_TeamsUnbalanceLimit);
 	g_TeamsUnbalanceLimit = s_ConVar_TeamsUnbalanceLimit.IntValue;
 
-	s_ConVar_RestartRound = FindConVar("mp_restartround");
+	s_ConVar_RestartRound = FindConVar("mp_restartround"); //TODO: Implement the gamedata that stops this messing with the scores+timer
 
 	s_ConVar_ScrambleMethod = CreateConVar(
 		"ss_scramble_method", "1",
@@ -200,7 +192,7 @@ public void OnPluginStart() {
 		true, 1.0
 	);
 	s_ConVar_ScrambleOnLoadRatio.AddChangeHook(conVarChanged_ScrambleOnLoadRatio);
-	g_ScrambleOnLoadRatio = s_ConVar_ScrambleOnLoadRatio.FloatValue;
+	g_ScrambleOnLoadRatio = s_ConVar_ScrambleOnLoadRatio.FloatValue; //TODO: Move this stuff to autoscramble.sp
 
 	s_ConVar_ScrambleVoteRestartSetup = CreateConVar(
 		"ss_scramble_vote_restart_setup", "1",
@@ -492,7 +484,7 @@ static Action event_PlayerTeam_Pre(Event event, const char[] name, bool dontBroa
 	if (team != oldTeam) {
 		if (team == TEAM_SPECTATOR || team == TEAM_UNASSIGNED)
 		{
-			PauseClientScoring(client);
+			PauseClientScoring(client); //TODO: Call this as a funciton in scoring.sp
 		}
 		else
 		{
@@ -539,7 +531,6 @@ static Action event_RoundStart_Post(Event event, const char[] name, bool dontBro
 }
 
 static Action event_RoundWin_Post(Event event, const char[] name, bool dontBroadcast) {
-	UpdateScoreCache();
 	int winningTeam = event.GetInt("team");
 	bool fullRound = event.GetBool("full_round");
 
@@ -605,30 +596,9 @@ void InitInGameClient(int client) {
 }
 
 public void OnAllPluginsLoaded() {
-	g_HLCEApiAvailable = LibraryExists("hlxce-sm-api");
 	if(g_DebugLog){
-		DebugLog("OnAllPluginsLoaded \"%i\"", g_ConVar_ScoreMethod.IntValue);
+		DebugLog("OnAllPluginsLoaded");
 	}
-	InitScoreMethod(view_as<ScoreMethod>(g_ConVar_ScoreMethod.IntValue));
-	
-}
-
-public void OnLibraryAdded(const char[] name) {
-	if (StrEqual(name, "hlxce-sm-api")) {
-		g_HLCEApiAvailable = true;
-	}
-}
-
-public void OnLibraryRemoved(const char[] name) {
-	if (StrEqual(name, "hlxce-sm-api")) {
-		g_HLCEApiAvailable = false;
-	}
-}
-
-public APLRes AskPluginLoad2(Handle myself, bool late, char[] error, int err_max) {
-	MarkNativeAsOptional("HLXCE_IsClientReady");
-	MarkNativeAsOptional("HLXCE_GetPlayerData");
-	return APLRes_Success;
 }
 
 public void OnClientPutInServer(int client) {
@@ -862,7 +832,7 @@ void PauseClientScoring(int client){
 	if(g_ClientIsTracking[client])
 	{
 		UpdateClientScoreTime(client);
-		g_ClientIsTracking[client] = false;
+		g_ClientIsTracking[client] = false; //TODO: Move all this to scoring.sp
 		if (g_DebugLog) {
 			DebugLog("Paused time tracking for %d (%d/%f)", client, g_ClientPlayScore[client], g_ClientPlayTime[client]);
 		}
@@ -872,7 +842,7 @@ void PauseClientScoring(int client){
 void ResumeClientScoring(int client){
 	if(!g_ClientIsTracking[client]){
 		UpdateClientScoreTime(client);
-		g_ClientIsTracking[client] = true;
+		g_ClientIsTracking[client] = true; //TODO: Move all this to scoring.sp
 		if (g_DebugLog) {
 			DebugLog("Resumed time tracking for %d (%d/%f)", client, g_ClientPlayScore[client], g_ClientPlayTime[client]);
 		}
@@ -882,7 +852,7 @@ void ResumeClientScoring(int client){
 void SetClientScoring(int client, int score, float time){
 	UpdateClientScoreTime(client);
 	g_ClientPlayTime[client] = time;
-	g_ClientPlayScore[client] = score;
+	g_ClientPlayScore[client] = score; //TODO: Move all this to scoring.sp
 	if (g_DebugLog) {
 		DebugLog("Set score/time of %d to %d/%f", client, score, time);
 	}
@@ -893,7 +863,7 @@ void UpdateClientScoreTime(int client){
 	float gameTime = GetGameTime(); 
 	if(g_ClientIsTracking[client]){
 		g_ClientPlayTime[client] += (gameTime - g_ClientLastTime[client]);
-		g_ClientPlayScore[client] += (gameScore - g_ClientLastScore[client]);
+		g_ClientPlayScore[client] += (gameScore - g_ClientLastScore[client]); //TODO: Move all this to scoring.sp
 	}
 	g_ClientLastTime[client] = gameTime;
 	g_ClientLastScore[client] = gameScore;
