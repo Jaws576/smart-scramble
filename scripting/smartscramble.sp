@@ -687,7 +687,7 @@ void MapStartScramble(){
 			DebugLog("Team %d has score %d and ratio %f. Compare to threshold %f", i+2, sums[i], ratios[i], ratioThreshold);
 		}
 		if(ratios[i] > ratioThreshold && ratios[i] < 1.0){ //if ratio is 1 for a team then we are dealing with invalid data for other teams
-			SS_ReplyToCommand(client, "\x07%06X%t", g_MessageNotificationColorCode, "MapStartScramble");
+			SS_PrintToChatAll(0, "\x07%06X%t", g_MessageNotificationColorCode, "MapStartScramble");
 			RoundScramble();
 			break;
 		}
