@@ -85,6 +85,53 @@ bool IsTeamEscorting(int team) {
 }
 
 /**
+ * Resets the setup timer to the initial duration.
+ *
+ * @noreturn
+ */
+void ResetSetupTimer() {
+	int roundTimer = GetActiveRoundTimer();
+	if (IsValidEntity(roundTimer)) {
+		int setupTime = GetEntProp(roundTimer, Prop_Send, "m_nSetupTimeLength");
+		SetVariantInt(setupTime);
+		AcceptEntityInput(roundTimer, "SetSetupTime");
+	}
+}
+
+/**
+ * Removes all of a client's owned entities.
+ *
+ * @param explodeBuildings    Whether or not to explode the client's buildings.
+ * @noreturn
+ */
+void RemoveClientOwnedEntities(int client, bool explodeBuildings = false) {
+	SDKCall(g_SDKCall_RemoveAllOwnedEntitiesFromWorld, client, !explodeBuildings);
+}
+
+static char s_PickupClassnames[][] = {
+	"item_ammopack_small",
+	"item_ammopack_medium",
+	"item_ammopack_full",
+	"item_healthkit_small",
+	"item_healthkit_medium",
+	"item_healthkit_full",
+};
+
+/**
+ * Respawns all item pickups.
+ *
+ * @noreturn
+ */
+void RespawnPickups() {
+	for (int i = 0; i < 6; ++i) {
+		int entity = -1;
+		while ((entity = FindEntityByClassname(entity, s_PickupClassnames[i])) != -1) {
+			AcceptEntityInput(entity, "RespawnNow");
+		}
+	}
+}
+
+/**
  * Gets the VIP of the given team.
  *
  * @param team    Index of the team to get the VIP of.

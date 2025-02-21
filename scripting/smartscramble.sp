@@ -53,6 +53,7 @@ enum RespawnMode {
 	RespawnMode_Dont,
 	RespawnMode_Normal,
 	RespawnMode_Retain,
+	RespawnMode_Reset,
 }
 
 enum DatabaseKind {
@@ -133,13 +134,13 @@ public void OnPluginStart() {
 		SetFailState("GameData \"smartscramble.txt\" does not exist.");
 	}
 
-	/*StartPrepSDKCall(SDKCall_Player);
+	StartPrepSDKCall(SDKCall_Player);
 	PrepSDKCall_SetFromConf(gameconf, SDKConf_Signature, "CTFPlayer::RemoveAllOwnedEntitiesFromWorld");
 	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain);
 	g_SDKCall_RemoveAllOwnedEntitiesFromWorld = EndPrepSDKCall();
 	if (g_SDKCall_RemoveAllOwnedEntitiesFromWorld == null) {
 		SetFailState("Failed to create SDKCall for \"CTeamplayRoundBasedRules::g_SDKCall_RemoveAllOwnedEntitiesFromWorld\".");
-	}*/
+	}
 
 	g_Hook_GameRules_ShouldScramble = DynamicHook.FromConf(gameconf, "CTeamplayRules::ShouldScrambleTeams");
 	if (g_Hook_GameRules_ShouldScramble == null) {
@@ -926,9 +927,17 @@ bool MoveClientTeam(int client, int team, RespawnMode respawnMode) {
 				ChangeClientTeamRespawn(client, team);
 				retainInfo.LoadClient(client);
 			}
+			case RespawnMode_Reset: {
+				RemoveClientOwnedEntities(client);
+				ChangeClientTeamRespawn(client, team);
+			}
 		}
 		return true;
 	} else {
+	if (respawnMode == RespawnMode_Reset) {
+			RemoveClientOwnedEntities(client);
+			TF2_RespawnPlayer(client);
+		}
 		return false;
 	}
 }
@@ -1033,9 +1042,15 @@ bool QueueRoundScramble() {
 	}
 }
 
-void RestartSetupScramble() {
+/* void RestartSetupScramble() {
 	PerformScramble(RespawnMode_Dont);
 	s_ConVar_RestartRound.IntValue = 3;
+} */
+
+void RestartSetupScramble() {
+	ResetSetupTimer();
+	PerformScramble(RespawnMode_Reset);
+	RespawnPickups();
 }
 
 void RoundScramble() {
