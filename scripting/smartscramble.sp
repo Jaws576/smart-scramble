@@ -31,7 +31,7 @@ public Plugin myinfo = {
 	name = "Smart Scramble",
 	author = "Jaws, sbebular",
 	description = "Very simple scramble functionality for TF2 Classic, with extra points/time scoring mode",
-	version = "1.2.3",
+	version = "1.2",
 	url = "https://github.com/Jaws576/smart-scramble"
 };
 
@@ -72,7 +72,6 @@ static ConVar s_ConVar_ScrambleVoteRatio;
 static ConVar s_ConVar_ScrambleVoteRestartSetup;
 static ConVar s_ConVar_ScrambleVoteCooldown;
 static ConVar s_ConVar_TeamStatsAdminFlags;
-static ConVar s_ConVar_RestartRound;
 
 static ConVar s_ConVar_ScrambleOnLoadRatio;
 
@@ -162,8 +161,6 @@ public void OnPluginStart() {
 	s_ConVar_TeamsUnbalanceLimit = FindConVar("mp_teams_unbalance_limit");
 	s_ConVar_TeamsUnbalanceLimit.AddChangeHook(conVarChanged_TeamsUnbalanceLimit);
 	g_TeamsUnbalanceLimit = s_ConVar_TeamsUnbalanceLimit.IntValue;
-
-	s_ConVar_RestartRound = FindConVar("mp_restartround");
 
 	s_ConVar_ScrambleMethod = CreateConVar(
 		"ss_scramble_method", "1",
@@ -1041,11 +1038,6 @@ bool QueueRoundScramble() {
 		return true;
 	}
 }
-
-/* void RestartSetupScramble() {
-	PerformScramble(RespawnMode_Dont);
-	s_ConVar_RestartRound.IntValue = 3;
-} */
 
 void RestartSetupScramble() {
 	ResetSetupTimer();
