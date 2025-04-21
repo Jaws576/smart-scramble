@@ -774,6 +774,10 @@ void HandleVoteScramble(int passingClient = 0) {
 }
 
 void CastVoteScramble(int client) {
+	//TEMP FIX TO REPORTED CRASHES POST 2.2
+	if (GetClientTeam(client) <= 1){
+		return;
+	}
 	if (!IsFakeClient(client)) {
 		if (IsRoundScrambleQueued()) {
 			SS_ReplyToCommand(client, "\x07%06X%t", g_MessageSuccessColorCode, "ScrambleRoundAlreadyQueued");
